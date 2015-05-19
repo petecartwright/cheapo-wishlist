@@ -1,0 +1,20 @@
+SQLite database setup
+
+
+
+create table wishlist(
+wishlistID      text,
+itemID          text,
+item_url        text,
+itemTitle       text,
+fullPrice       text,
+usedAndNewPrice text,
+primeStatus	    text,
+kindleStatus    text,
+starRating      text,
+categories      text,
+fullImageURL    text,
+thumbnailURL    text,
+underABuck      text,
+priceDiff       text
+);
