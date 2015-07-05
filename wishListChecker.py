@@ -230,8 +230,8 @@ def main():
         print WISHLIST_ID + 'is an empty wishlist!'
         sys.exit()
 
-    if wishlistFirstPage.text.find("If this is your Wish List, please sign in") != -1:
-        print WISHLIST_ID + 'is an private wishlist!'
+    if wishlistFirstPage.text.find("The Web address you entered is not a functioning page on our site") != -1:
+        print WISHLIST_ID + ' is a private or invalid wishlist!'
         sys.exit()
 
     if wishlistFirstPage.find(class_="a-pagination"):
@@ -268,13 +268,4 @@ def main():
 
 
 if __name__ == "__main__":
-
     main()
-
-    
-
-
-
-
-
-
