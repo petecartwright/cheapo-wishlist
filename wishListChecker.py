@@ -383,19 +383,9 @@ def refreshAllWishlists():
         # TODO - can this be parallellized without angering Amazon?
         refreshWishlist(w)
 
-<<<<<<< HEAD
-
 def main():
     refreshWishlist('1ZF0FXNHUY7IG')
 
 
-
-
-
-
 if __name__ == "__main__":
-
-=======
-if __name__ == "__main__":
->>>>>>> 1cab0072d274d19b7e3d204560aa0bbea10624bf
     main()
