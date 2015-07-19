@@ -24,15 +24,6 @@ import sys
         # design interface for web version
         # prime status for lowest used price - would need to "click through" to the used/new pages
 
-    # Done
-        # put these into a DB    
-        # get the itemID
-        # added amazon referrer in
-        # handle empty wishlist - make fake acct to test
-        # handle private wishlists
-        # handle not yet released
-        # handle all editions - paperback, hardcover, anything else.
-
 
 def getItemsFromWishListPage(wishlistURL, wishlistID, pageNumber):
     print 'getting items from page ' + str(pageNumber)
@@ -149,6 +140,14 @@ def getCategories(itemSoup):
 
 
 def getVersions(itemSoup):
+    ''' takes a soup of an item
+        returns an array of dicts with:
+            itemVersion - New, Used, Collectible, Hardcover - Used, Hardcover - New, etc 
+            versionPrice - 11.96
+
+            TODO versionPrimeStatus 
+
+    '''
 
     versions = []
 
@@ -157,28 +156,33 @@ def getVersions(itemSoup):
     if itemSoup.find(id='tmmSwatches'):
         swatchElements = itemSoup.find(id='tmmSwatches').findAll('li',class_="swatchElement")
         for e in swatchElements:
-            itemType = e.find(class_='a-button-text').find('span').text  # Hardcover
-            basePrice = e.find(class_=re.compile('a-color-')).text.strip().strip('from ').strip('$')  # 24.95
-            usedPrice = None
-            newPrice = None
-            collectiblePrice = None
-            if e.find(class_='tmm-olp-links'):
-                if e.find(class_='olp-used'):
-                    usedPrice = e.find(class_='olp-used').find(class_='olp-from').nextSibling.strip().strip('$')       # 21.95
-                if e.find(class_='olp-new'):
-                    newPrice = e.find(class_='olp-new').find(class_='olp-from').nextSibling.strip().strip('$')
-                if e.find(class_='olp-collectible'):
-                    collectiblePrice = e.find(class_='olp-collectible').find(class_='olp-from').nextSibling.strip().strip('$')
 
-            versions.append({'itemType': itemType, 
-                             'basePrice': basePrice, 
-                             'usedPrice': usedPrice, 
-                             'newPrice': newPrice,
-                             'collectiblePrice': collectiblePrice})
+            itemType = e.find(class_='a-button-text').find('span').text  # Hardcover
+            amazonPrice = e.find(class_=re.compile('a-color-')).text.strip().strip('from ').strip('$')  # 24.95
+            # add the amazon version to the version array
+            versions.append({'itemVersion': itemType + ' - Amazon',
+                             'itemPrice': str(amazonPrice)
+                             })
+
+            # all of the different versions will be in spans with classes like 'olp-used', 'olp-new', etc
+            # "olp-from" is literally just the word "from". we can ignore that.
+            nonAmazonVersions = e.findAll('span', class_=re.compile(r'(?!olp-from)^olp-'))
+
+            for v in nonAmazonVersions:
+                # item Type is in the URL on the a element
+                # ex: <a ... href="...ie=UTF8&amp;condition=used&amp;sr=&amp;qid=">
+                #                                 ^^^^^^^^^^^^^^
+                itemVersion = re.search(r'condition=([a-zA-Z]+)',str(v.find('a'))).groups(0)[0].capitalize()
+                # price will be in a string like : 6 Used from $21.95
+                itemPrice = re.search(r'from \$([0-9]+\.[0-9]+)',str(v.text)).groups(0)[0]
+                versions.append({'itemVersion': itemType + ' - ' + itemVersion,
+                                 'itemPrice': itemPrice
+                               })
     else:
         # if not, it's probably not a book.
         # this one is a good example of three prices - From Amazon, New, and Used
         # http://www.amazon.com/dp/B004C3CAB8/
+        # TODO - incorporate the shipping info from the "other sellers on amazon" box
         
         basePrice = itemSoup.find(id='priceblock_ourprice')
         spans = itemSoup.findAll('span')
@@ -187,10 +191,6 @@ def getVersions(itemSoup):
                 itemType = re.search(r'condition=([a-zA-Z]+)',str(s.a)).groups(0)[0]
                 price = s.find(class_='a-color-price').text.strip('$')
                 print 'condition: {0}, price: {1}'.format(condition, price)
-
-
-        
-
 
     return versions
 
