@@ -62,11 +62,6 @@ def getItemsFromWishListPage(wishlistURL, wishlistID, pageNumber):
             itemID = itemURL.split("/")[-1]
             fullPrice = item.find(id=re.compile('itemPrice_')).text.strip().split('$')[-1]
 
-            # # not everything has a used and new price
-            # usedAndNewPrice = ''
-            # if item.find(class_="itemUsedAndNewPrice"):
-            #     usedAndNewPrice = item.find(class_="itemUsedAndNewPrice").text.strip().split('$')[-1]
-
             dateAdded = item.find(class_='dateAddedText').text.strip().split('\n')[0]
 
             # get the star rating of the item - ranges from 1 to 5
@@ -82,33 +77,13 @@ def getItemsFromWishListPage(wishlistURL, wishlistID, pageNumber):
             thumbnailURLParts = item.find("img")['src'].split(".")
             fullImageURL = thumbnailURLParts[0]+'.'+thumbnailURLParts[1]+'.'+thumbnailURLParts[2]+'.'+thumbnailURLParts[-1]
 
-            # PTC - killing for now. pulling ALL price info from the page
-
-            # if fullPrice != '' and usedAndNewPrice != '':
-            #     priceDiff = float(fullPrice) - float(usedAndNewPrice)
-            # else:
-            #     priceDiff = 'N/A'
-
-            # underABuck = False
-            # if usedAndNewPrice.find('.') != -1:
-            #     if float(usedAndNewPrice) < 1.00:
-            #         underABuck = True
-
-            # if fullPrice.find('.') != -1:
-            #     if float(fullPrice) < 1.00:
-            #         underABuck = True
-                
             itemList.append({"wishlistID": wishlistID,
                              "itemID": itemID,
                              "itemTitle": itemTitle,
                              "itemURL": itemURL,
-                             # "fullPrice": fullPrice,
-                             # "usedAndNewPrice": usedAndNewPrice,
                              "starRating": starRating,
                              "thumbnailURL": thumbnailURL,
-                             "fullImageURL": fullImageURL#,
-                             # "underABuck": underABuck,
-                             # "priceDiff": priceDiff
+                             "fullImageURL": fullImageURL
                              })
         return itemList
 
@@ -246,12 +221,6 @@ def getInfoFromItemPage(item):
                         "versions": None
                        }
         return dictToReturn
-
-
-
-
-    
-
     
     dictToReturn = {"primeStatus": primeStatus,
                     "categories": categories,
