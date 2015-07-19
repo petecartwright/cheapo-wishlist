@@ -4,19 +4,25 @@ import re
 import sqlite3
 import sys
 
+#### NEXT UP
+
+# convert code to handle new DB layout
+# test, test, test
+
+# write mvp Django frontend
+
+
 #TODO
 
     # Need
         # put this on petecartwright.com and schedule
         # set up email notification
+        # handle textbook pages. ex: http://www.amazon.com/Beautiful-Code-Leading-Programmers-Practice/dp/0596510047/
 
     # Nice
-        # handle all other editions - paperback, hardcover, anything else. pop into a dict?   "xxxxxxPrice": xxxxxxPrice?   
         # paralell retrievals? (http://docs.python-requests.org/en/v0.10.6/user/advanced/)
         # design interface for web version
-
-    # Open Q?
-        # can i get a wishlist from the Amazon email?
+        # prime status for lowest used price - would need to "click through" to the used/new pages
 
     # Done
         # put these into a DB    
@@ -25,11 +31,12 @@ import sys
         # handle empty wishlist - make fake acct to test
         # handle private wishlists
         # handle not yet released
+        # handle all editions - paperback, hardcover, anything else.
 
 
-def getItemsFromWishListPage(amazonURL, wishlistID, pageNumber):
+def getItemsFromWishListPage(wishlistURL, wishlistID, pageNumber):
     print 'getting items from page ' + str(pageNumber)
-    r = requests.get(amazonURL+'/?page='+str(pageNumber))
+    r = requests.get(wishlistURL+'/'+wishlistID+'/?page='+str(pageNumber))
     wishListPage = BeautifulSoup(r.content)
 
     # for each product on this page:
@@ -45,47 +52,25 @@ def getItemsFromWishListPage(amazonURL, wishlistID, pageNumber):
             
             itemTitle = item.find(('a'))["title"]
             print itemTitle
-
             # if it isn't released yet, we don't need to add it
             if item.find('This title will be released'):
+                print "Not yet out, won't add to DB"
                 continue
-
             # start with the base URL, add the result from the link in the wishlist item
             # then split off everything after (and including) the first "?"
             itemURL = 'http://www.amazon.com' + item.find(class_='a-link-normal')["href"] .split("?",1)[0] + '?tag=thithargr-20'
-
             itemID = itemURL.split("/")[-1]
-
             fullPrice = item.find(id=re.compile('itemPrice_')).text.strip().split('$')[-1]
 
-            # not everything has a used and new price
-            usedAndNewPrice = ''
-            if item.find(class_="itemUsedAndNewPrice"):
-                usedAndNewPrice = item.find(class_="itemUsedAndNewPrice").text.strip().split('$')[-1]
+            # # not everything has a used and new price
+            # usedAndNewPrice = ''
+            # if item.find(class_="itemUsedAndNewPrice"):
+            #     usedAndNewPrice = item.find(class_="itemUsedAndNewPrice").text.strip().split('$')[-1]
 
             dateAdded = item.find(class_='dateAddedText').text.strip().split('\n')[0]
 
             # get the star rating of the item - ranges from 1 to 5
-            if item.find(class_ = 'a-star-5'):
-                starRating = '5'
-            elif item.find(class_ = 'a-star-4-5'):
-                starRating = '4.5'
-            elif item.find(class_ = 'a-star-4'):
-                starRating = '4'
-            elif item.find(class_ = 'a-star-3-5'):
-                starRating = '3.5'
-            elif item.find(class_ = 'a-star-3'):
-                starRating = '3'
-            elif item.find(class_ = 'a-star-2-5'):
-                starRating = '2.5'
-            elif item.find(class_ = 'a-star-2'):
-                starRating = '2'
-            elif item.find(class_ = 'a-star-1-5'):
-                starRating = '1.5'
-            elif item.find(class_ = 'a-star-1'):
-                starRating = '1'
-            else:
-                starRating = 'None'
+            starRating = getStarRating(item)
 
             # get thumbnail image URL for displaying elsewhere
 
@@ -94,50 +79,69 @@ def getItemsFromWishListPage(amazonURL, wishlistID, pageNumber):
             # we want to take the first three sections, adding in the  "."s and then everything after the final "."
             # (probably always jpg but why not be sure)
 
-            thumbnailURL = item.find("img")['src']
-            thumbnailURLParts = thumbnailURL.split(".")
+            thumbnailURLParts = item.find("img")['src'].split(".")
             fullImageURL = thumbnailURLParts[0]+'.'+thumbnailURLParts[1]+'.'+thumbnailURLParts[2]+'.'+thumbnailURLParts[-1]
 
-            if fullPrice != '' and usedAndNewPrice != '':
-                priceDiff = float(fullPrice) - float(usedAndNewPrice)
-            else:
-                priceDiff = 'N/A'
+            # PTC - killing for now. pulling ALL price info from the page
 
-            underABuck = False
-            if usedAndNewPrice.find('.') != -1:
-                if float(usedAndNewPrice) < 1.00:
-                    underABuck = True
+            # if fullPrice != '' and usedAndNewPrice != '':
+            #     priceDiff = float(fullPrice) - float(usedAndNewPrice)
+            # else:
+            #     priceDiff = 'N/A'
 
-            if fullPrice.find('.') != -1:
-                if float(fullPrice) < 1.00:
-                    underABuck = True
+            # underABuck = False
+            # if usedAndNewPrice.find('.') != -1:
+            #     if float(usedAndNewPrice) < 1.00:
+            #         underABuck = True
+
+            # if fullPrice.find('.') != -1:
+            #     if float(fullPrice) < 1.00:
+            #         underABuck = True
                 
             itemList.append({"wishlistID": wishlistID,
                              "itemID": itemID,
                              "itemTitle": itemTitle,
                              "itemURL": itemURL,
-                             "fullPrice": fullPrice,
-                             "usedAndNewPrice": usedAndNewPrice,
+                             # "fullPrice": fullPrice,
+                             # "usedAndNewPrice": usedAndNewPrice,
                              "starRating": starRating,
                              "thumbnailURL": thumbnailURL,
-                             "fullImageURL": fullImageURL,
-                             "underABuck": underABuck,
-                             "priceDiff": priceDiff
+                             "fullImageURL": fullImageURL#,
+                             # "underABuck": underABuck,
+                             # "priceDiff": priceDiff
                              })
         return itemList
 
 
-def getInfoFromItemPage(item):
-    """ takes an amazon item dict
-        checks for: prime shipping
-                    category
-                    if it's a kindle edition and if so, the hardcover and paperback URLs
+def getStarRating(itemSoup):
 
-    """
+    if itemSoup.find(class_ = 'a-star-5'):
+        starRating = '5'
+    elif itemSoup.find(class_ = 'a-star-4-5'):
+        starRating = '4.5'
+    elif itemSoup.find(class_ = 'a-star-4'):
+        starRating = '4'
+    elif itemSoup.find(class_ = 'a-star-3-5'):
+        starRating = '3.5'
+    elif itemSoup.find(class_ = 'a-star-3'):
+        starRating = '3'
+    elif itemSoup.find(class_ = 'a-star-2-5'):
+        starRating = '2.5'
+    elif itemSoup.find(class_ = 'a-star-2'):
+        starRating = '2'
+    elif itemSoup.find(class_ = 'a-star-1-5'):
+        starRating = '1.5'
+    elif itemSoup.find(class_ = 'a-star-1'):
+        starRating = '1'
+    else:
+        starRating = 'None'    
 
-    r = requests.get(item["itemURL"])
-    itemSoup = BeautifulSoup(r.content)
+    return starRating    
 
+def getPrimeStatus(itemSoup):
+    ''' take a BeautifulSoup object of an item and return its 
+        prime status as a string
+    '''
     # look for it either being fulfilled by amazon or sold by. Those should be all (?) Prime?
     if (   itemSoup.find(text=re.compile("Fulfilled by Amazon")) 
         or itemSoup.find(text=re.compile("Ships from and sold by Amazon.com."))
@@ -148,7 +152,13 @@ def getInfoFromItemPage(item):
     else:
         primeStatus = 'Not Prime'
 
-    # get the category - getting all for now. how granular do we need this?
+    return primeStatus
+
+
+def getCategories(itemSoup):
+    ''' take a BeautifulSoup object of an item's page 
+        return a list of the categories we think it's in as a comma seperated string
+    '''
     categoriesList = []
     breadCrumbs = itemSoup.find(id='wayfinding-breadcrumbs_container')
     if breadCrumbs is not None:
@@ -160,25 +170,92 @@ def getInfoFromItemPage(item):
 
     categories = ",".join(categoriesList)
 
-    # find out if it's a kindle edition, and if it is
-    # get the URLs for the paperback and hardcopy editions
-    if itemSoup.find(text=re.compile("[Kindle Edition]")):
-        kindleStatus = 'Kindle'
-        # if itemSoup.find('a',text=re.compile("Hardcover")):
-            # hardcoverPrice = 
-            # paperbackURL = itemSoup.find('a',text=re.compile("Paperback"))['href']
-            # paperbackPrice = 
+    return categories
+
+
+def getVersions(itemSoup):
+
+    versions = []
+
+    # books will have the little boxes with the 'Hardcover $24.95 | used from $21.45 | New from $22.34' boxes
+    # amazon calls those swatches. If they exist, get all the data from them.
+    if itemSoup.find(id='tmmSwatches'):
+        swatchElements = itemSoup.find(id='tmmSwatches').findAll('li',class_="swatchElement")
+        for e in swatchElements:
+            itemType = e.find(class_='a-button-text').find('span').text  # Hardcover
+            basePrice = e.find(class_=re.compile('a-color-')).text.strip().strip('from ').strip('$')  # 24.95
+            usedPrice = None
+            newPrice = None
+            collectiblePrice = None
+            if e.find(class_='tmm-olp-links'):
+                if e.find(class_='olp-used'):
+                    usedPrice = e.find(class_='olp-used').find(class_='olp-from').nextSibling.strip().strip('$')       # 21.95
+                if e.find(class_='olp-new'):
+                    newPrice = e.find(class_='olp-new').find(class_='olp-from').nextSibling.strip().strip('$')
+                if e.find(class_='olp-collectible'):
+                    collectiblePrice = e.find(class_='olp-collectible').find(class_='olp-from').nextSibling.strip().strip('$')
+
+            versions.append({'itemType': itemType, 
+                             'basePrice': basePrice, 
+                             'usedPrice': usedPrice, 
+                             'newPrice': newPrice,
+                             'collectiblePrice': collectiblePrice})
     else:
-        kindleStatus = 'Not Kindle'
-        # hardcoverURL = ''
-        # paperbackURL = ''
+        # if not, it's probably not a book.
+        # this one is a good example of three prices - From Amazon, New, and Used
+        # http://www.amazon.com/dp/B004C3CAB8/
+        
+        basePrice = itemSoup.find(id='priceblock_ourprice')
+        spans = itemSoup.findAll('span')
+        for s in spans:
+            if s.find(class_='a-color-price'):
+                itemType = re.search(r'condition=([a-zA-Z]+)',str(s.a)).groups(0)[0]
+                price = s.find(class_='a-color-price').text.strip('$')
+                print 'condition: {0}, price: {1}'.format(condition, price)
 
 
+        
+
+
+    return versions
+
+
+def getInfoFromItemPage(item):
+    """ takes an amazon item dict
+        returns a dict with :
+            prime status
+            categories (as string)
+            all versions and prices (as list of dicts)
+
+    """
+
+    r = requests.get(item["itemURL"])
+    itemSoup = BeautifulSoup(r.content)
+    
+    primeStatus = getPrimeStatus(itemSoup)
+    categories = getCategories(itemSoup)
+    
+    # array of dicts - one for each version of the product - hardcover, paperback, kindle, etc
+    versions = getVersions(itemSoup)
+
+    # check to see if it's a textbook - if it is, skip for now.
+    if itemSoup.text.find('Try the eTextbook free') != -1:
+        print "Can't handle textbooks yet!"
+        dictToReturn = {"primeStatus": None,
+                        "categories": None,
+                        "versions": None
+                       }
+        return dictToReturn
+
+
+
+
+    
+
+    
     dictToReturn = {"primeStatus": primeStatus,
                     "categories": categories,
-                    "kindleStatus": kindleStatus
-                    # "hardcoverURL": hardcoverURL,
-                    # "paperbackURL": paperbackURL
+                    "versions": versions
                     }
 
     return dictToReturn
@@ -194,42 +271,61 @@ def addItemsToDB(itemList):
         # clear out the table (for now)
         cur.execute('delete from wishlist where wishlistID = "' + itemList[0]['wishlistID'] + '";')
         for item in itemList:
+            # insert into the wishlistItem table 
+
             tupleToInsert = (item['wishlistID'],
                              item['itemID'],
                              item['itemURL'],
                              item['itemTitle'],
-                             item['fullPrice'],
-                             item['usedAndNewPrice'],
-                             item['primeStatus'],
-                             item['kindleStatus'],
                              item['starRating'],
-                             item['categories'],
                              item['fullImageURL'],
-                             item['thumbnailURL'],
-                             item['underABuck'],
-                             item['priceDiff']
+                             item['thumbnailURL']
                              )
 
-            cur.execute('insert into wishlist values (?,?,?,?,?,?,?,?,?,?,?,?,?,?)', tupleToInsert)
+            cur.execute('insert into wishlistItems values (?,?,?,?,?,?,?)', tupleToInsert)
 
 
-def main():
+def isEmptyWishlist(wishlistPage):
+    if wishlistPage.text.find("0 items on list") != -1:
+        return True
+    else:
+        return False
+
+def isPrivateWishlist(wishlistPage):
+    if wishlistPage.text.find("If this is your Wish List, please sign in") != -1:
+        return True
+    else:
+        return False
+
+
+def removeWishlistFromDB(wishlistID):
+    """ remove a wishlist and items from wishlistItems table
+        does not affect anything in the Items table
+    """
+    con = sqlite3.connect('wishlist.db')
+    
+    with con:
+        cur = con.cursor()
+        removeSQL = "delete from wishlistItems where wishlistId = '{0}'".format(wishlistID)
+        cur.execute(removeSQL)
+
+
+def refreshWishlist(wishlistID):
+
+    # delete all items from wishlist in DB
 
     BASE_URL = 'http://www.amazon.com/gp/registry/wishlist/'
-    WISHLIST_ID = '1ZF0FXNHUY7IG'
     # connect to wishlist page
-    amazonURL = BASE_URL+WISHLIST_ID
-    r = requests.get(amazonURL)
+    wishlistURL = BASE_URL+wishlistID
+    r = requests.get(wishlistURL)
     wishlistFirstPage = BeautifulSoup(r.content)
 
-    # check for multiple pages
-
-    if wishlistFirstPage.text.find("0 items on list") != -1:
-        print WISHLIST_ID + 'is an empty wishlist!'
+    if isEmptyWishlist(wishlistFirstPage):
+        print wishlistID + 'is an empty wishlist!'
         sys.exit()
 
-    if wishlistFirstPage.text.find("If this is your Wish List, please sign in") != -1:
-        print WISHLIST_ID + 'is an private wishlist!'
+    if isPrivateWishlist(wishlistFirstPage):
+        print wishlistID + 'is an private wishlist!'
         sys.exit()
 
     if wishlistFirstPage.find(class_="a-pagination"):
@@ -249,8 +345,7 @@ def main():
 
     # run through each page:
     for i in range(1, finalPage+1):
-        
-        allItems += getItemsFromWishListPage(amazonURL=amazonURL, wishlistID=WISHLIST_ID, pageNumber=i)
+        allItems += getItemsFromWishListPage(wishlistURL=BASE_URL, wishlistID=wishlistID, pageNumber=i)
 
     # get the info from the item page for each item
     # category, prime status, etc    
@@ -259,20 +354,35 @@ def main():
         item.update(getInfoFromItemPage(item))
 
     addItemsToDB(allItems)
-    # f = open('itemlist.txt','w')
-    # f.write(str(allItems))
-    # f.close()
+
+
+
+def refreshAllWishlists():
+    
+    # get wishlists from DB
+    wishlists = []
+
+    con = sqlite3.connect('wishlist.db')
+    with con:
+        cur = con.cursor()
+        sql = 'select wishlistID from wishlist group by 1;'
+        cur.execute(sql)
+        data = cur.fetchAll()
+        for d in data:
+            wishlists.append(d[0])
+
+    for w in wishlist:
+        # TODO - can this be parallellized without angering Amazon?
+        refreshWishlist(w)
+
+
+def main():
+
+    refreshWishlist('1ZF0FXNHUY7IG')
+
 
 
 
 if __name__ == "__main__":
 
     main()
-
-    
-
-
-
-
-
-
