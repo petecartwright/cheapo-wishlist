@@ -14,6 +14,8 @@ import sys
 
 #TODO
 
+    # additional comments
+
     # Need
         # put this on petecartwright.com and schedule
         # set up email notification
@@ -283,6 +285,12 @@ def isPrivateWishlist(wishlistPage):
     else:
         return False
 
+def isInvalidWishlist(wishListPage):
+    if wishListPage.text.find("The Web address you entered is not a functioning page on our site") != -1:
+        return True
+    else:
+        return False
+
 def removeWishlistFromDB(wishlistID):
     """ remove a wishlist and items from wishlistItems table
         does not affect anything in the Items table
@@ -306,6 +314,8 @@ def cleanPrice(price):
     cleaned_price = price.strip().strip('from ').strip('$')
     return cleaned_price
 
+
+
 def refreshWishlist(wishlistID):
 
     # delete all items from wishlist in DB
@@ -317,12 +327,15 @@ def refreshWishlist(wishlistID):
     wishlistFirstPage = BeautifulSoup(r.content)
 
     if isEmptyWishlist(wishlistFirstPage):
-        print wishlistID + 'is an empty wishlist!'
+        print wishlistID + ' is an empty wishlist!'
         return False
 
     if isPrivateWishlist(wishlistFirstPage):
-        print wishlistID + 'is an private wishlist!'
+        print wishlistID + ' is an private wishlist!'
         return False
+
+    if isInvalidWishlist(wishlistFirstPage):
+        print wishlistId + ' is a private or invalid wishlist!'
 
     if wishlistFirstPage.find(class_="a-pagination"):
         #if we have multiple pages:
@@ -370,6 +383,7 @@ def refreshAllWishlists():
         # TODO - can this be parallellized without angering Amazon?
         refreshWishlist(w)
 
+<<<<<<< HEAD
 
 def main():
     refreshWishlist('1ZF0FXNHUY7IG')
@@ -381,4 +395,7 @@ def main():
 
 if __name__ == "__main__":
 
+=======
+if __name__ == "__main__":
+>>>>>>> 1cab0072d274d19b7e3d204560aa0bbea10624bf
     main()
