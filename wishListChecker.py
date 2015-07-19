@@ -65,7 +65,8 @@ def getItemsFromWishListPage(wishlistURL, wishlistID, pageNumber):
             # we want to take the first three sections, adding in the  "."s and then everything after the final "."
             # (probably always jpg but why not be sure)
 
-            thumbnailURLParts = item.find("img")['src'].split(".")
+            thumbnailURL = item.find("img")['src']
+            thumbnailURLParts = thumbnailURL.split(".")
             fullImageURL = thumbnailURLParts[0]+'.'+thumbnailURLParts[1]+'.'+thumbnailURLParts[2]+'.'+thumbnailURLParts[-1]
 
             itemList.append({"wishlistID": wishlistID,
@@ -184,14 +185,29 @@ def getVersions(itemSoup):
         # http://www.amazon.com/dp/B004C3CAB8/
         # TODO - incorporate the shipping info from the "other sellers on amazon" box
         
-        basePrice = itemSoup.find(id='priceblock_ourprice')
-        spans = itemSoup.findAll('span')
-        for s in spans:
+        # check for a sale price first
+        if itemSoup.find(id='priceblock_saleprice'):
+            salePrice = itemSoup.find(id='priceblock_saleprice').text.strip().strip('$')
+            versions.append({'itemVersion': 'Amazon',
+                             'itemPrice': salePrice
+                            })
+        else:
+            basePrice = itemSoup.find(id='priceblock_ourprice').text.strip().strip('$')
+            versions.append({'itemVersion': 'Amazon',
+                             'itemPrice': basePrice
+                            })
+        otherVersions = itemSoup.find(id='olp_feature_div').findAll('span')
+        for s in otherVersions:
+            # TODO - handle multiple colors - ex http://www.amazon.com/dp/B00AIRUOI8/
             if s.find(class_='a-color-price'):
-                itemType = re.search(r'condition=([a-zA-Z]+)',str(s.a)).groups(0)[0]
-                price = s.find(class_='a-color-price').text.strip('$')
-                print 'condition: {0}, price: {1}'.format(condition, price)
+                itemType = re.search(r'condition=([a-zA-Z]+)',str(s.find('a'))).groups(0)[0].capitalize()
+                itemPrice = s.find(class_='a-color-price').text.strip().strip('$')
+                print 'condition: {0}, price: {1}'.format(itemType, itemPrice)
+                versions.append({'itemVersion': itemType,
+                                'itemPrice': itemPrice
+                                })
 
+    print versions
     return versions
 
 
@@ -209,9 +225,6 @@ def getInfoFromItemPage(item):
     
     primeStatus = getPrimeStatus(itemSoup)
     categories = getCategories(itemSoup)
-    
-    # array of dicts - one for each version of the product - hardcover, paperback, kindle, etc
-    versions = getVersions(itemSoup)
 
     # check to see if it's a textbook - if it is, skip for now.
     if itemSoup.text.find('Try the eTextbook free') != -1:
@@ -221,6 +234,10 @@ def getInfoFromItemPage(item):
                         "versions": None
                        }
         return dictToReturn
+    
+    # array of dicts - one for each version of the product - hardcover, paperback, kindle, etc
+    versions = getVersions(itemSoup)
+
     
     dictToReturn = {"primeStatus": primeStatus,
                     "categories": categories,
@@ -266,7 +283,6 @@ def isPrivateWishlist(wishlistPage):
     else:
         return False
 
-
 def removeWishlistFromDB(wishlistID):
     """ remove a wishlist and items from wishlistItems table
         does not affect anything in the Items table
@@ -277,6 +293,7 @@ def removeWishlistFromDB(wishlistID):
         cur = con.cursor()
         removeSQL = "delete from wishlistItems where wishlistId = '{0}'".format(wishlistID)
         cur.execute(removeSQL)
+
 
 
 def refreshWishlist(wishlistID):
@@ -291,18 +308,16 @@ def refreshWishlist(wishlistID):
 
     if isEmptyWishlist(wishlistFirstPage):
         print wishlistID + 'is an empty wishlist!'
-        sys.exit()
+        return False
 
     if isPrivateWishlist(wishlistFirstPage):
         print wishlistID + 'is an private wishlist!'
-        sys.exit()
+        return False
 
     if wishlistFirstPage.find(class_="a-pagination"):
         #if we have multiple pages:
-        # get the number of pages on the wishlist
-        # in the a-pagination div, there's a list of pages to go to
-        # the second to last is the last page of the wishlist
-        # (the last one is "next")
+        # get the number of pages on the wishlist. in the a-pagination div, there's a list of pages to go to.
+        # the second to last is the last page of the wishlist. (the last one is "next")
         finalPage = int(wishlistFirstPage.find(class_="a-pagination").findAll('li')[-2].text)
     else:
         finalPage = 1
@@ -322,15 +337,16 @@ def refreshWishlist(wishlistID):
         print 'getting info for item ' +  item['itemTitle']
         item.update(getInfoFromItemPage(item))
 
-    addItemsToDB(allItems)
-
+    #addItemsToDB(allItems)
+    print "DONE. Let's add these to a database"
 
 
 def refreshAllWishlists():
+    ''' get all active wishlists from DB
+        refresh them all
+    '''
     
-    # get wishlists from DB
     wishlists = []
-
     con = sqlite3.connect('wishlist.db')
     with con:
         cur = con.cursor()
@@ -346,8 +362,9 @@ def refreshAllWishlists():
 
 
 def main():
-
     refreshWishlist('1ZF0FXNHUY7IG')
+
+
 
 
 
