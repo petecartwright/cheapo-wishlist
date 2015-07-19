@@ -51,7 +51,7 @@ def getItemsFromWishListPage(wishlistURL, wishlistID, pageNumber):
             # then split off everything after (and including) the first "?"
             itemURL = 'http://www.amazon.com' + item.find(class_='a-link-normal')["href"] .split("?",1)[0] + '?tag=thithargr-20'
             itemID = itemURL.split("/")[-1]
-            fullPrice = item.find(id=re.compile('itemPrice_')).text.strip().split('$')[-1]
+            fullPrice = cleanPrice(item.find(id=re.compile('itemPrice_')).text)
 
             dateAdded = item.find(class_='dateAddedText').text.strip().split('\n')[0]
 
@@ -159,7 +159,7 @@ def getVersions(itemSoup):
         for e in swatchElements:
 
             itemType = e.find(class_='a-button-text').find('span').text  # Hardcover
-            amazonPrice = e.find(class_=re.compile('a-color-')).text.strip().strip('from ').strip('$')  # 24.95
+            amazonPrice = cleanPrice(e.find(class_=re.compile('a-color-')).text) # 24.95
             # add the amazon version to the version array
             versions.append({'itemVersion': itemType + ' - Amazon',
                              'itemPrice': str(amazonPrice)
@@ -175,7 +175,7 @@ def getVersions(itemSoup):
                 #                                 ^^^^^^^^^^^^^^
                 itemVersion = re.search(r'condition=([a-zA-Z]+)',str(v.find('a'))).groups(0)[0].capitalize()
                 # price will be in a string like : 6 Used from $21.95
-                itemPrice = re.search(r'from \$([0-9]+\.[0-9]+)',str(v.text)).groups(0)[0]
+                itemPrice = cleanPrice(re.search(r'from \$([0-9]+\.[0-9]+)',str(v.text)).groups(0)[0])
                 versions.append({'itemVersion': itemType + ' - ' + itemVersion,
                                  'itemPrice': itemPrice
                                })
@@ -187,12 +187,12 @@ def getVersions(itemSoup):
         
         # check for a sale price first
         if itemSoup.find(id='priceblock_saleprice'):
-            salePrice = itemSoup.find(id='priceblock_saleprice').text.strip().strip('$')
+            salePrice = cleanPrice(itemSoup.find(id='priceblock_saleprice').text)
             versions.append({'itemVersion': 'Amazon',
                              'itemPrice': salePrice
                             })
         else:
-            basePrice = itemSoup.find(id='priceblock_ourprice').text.strip().strip('$')
+            basePrice = cleanPrice(itemSoup.find(id='priceblock_ourprice').text)
             versions.append({'itemVersion': 'Amazon',
                              'itemPrice': basePrice
                             })
@@ -201,7 +201,7 @@ def getVersions(itemSoup):
             # TODO - handle multiple colors - ex http://www.amazon.com/dp/B00AIRUOI8/
             if s.find(class_='a-color-price'):
                 itemType = re.search(r'condition=([a-zA-Z]+)',str(s.find('a'))).groups(0)[0].capitalize()
-                itemPrice = s.find(class_='a-color-price').text.strip().strip('$')
+                itemPrice = cleanPrice(s.find(class_='a-color-price').text)
                 print 'condition: {0}, price: {1}'.format(itemType, itemPrice)
                 versions.append({'itemVersion': itemType,
                                 'itemPrice': itemPrice
@@ -295,6 +295,16 @@ def removeWishlistFromDB(wishlistID):
         cur.execute(removeSQL)
 
 
+def cleanPrice(price):
+    ''' takes a string that contains a price
+        removes blank sale
+        removes 'from '
+        removes $
+        returns cleaned price
+    '''
+
+    cleaned_price = price.strip().strip('from ').strip('$')
+    return cleaned_price
 
 def refreshWishlist(wishlistID):
 
