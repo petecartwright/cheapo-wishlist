@@ -5,6 +5,12 @@ __pycache__/
 # C extensions
 *.so
 
+wishlist.db
+errors/
+*.html
+*.ipynb
+*.txt
+
 # Distribution / packaging
 .Python
 env/
@@ -55,3 +61,5 @@ docs/_build/
 
 # PyBuilder
 target/
+
+*.db

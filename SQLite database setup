@@ -2,30 +2,40 @@ SQLite database setup
 
 
 
-create table wishlistItems(
-wishlistID      text,
-itemID          text,
-item_url        text,
-itemTitle       text,
-starRating      text,
-fullImageURL    text,
-thumbnailURL    text,
+create table users (
+userID              INTEGER PRIMARY KEY,
+username            text,
+userEmail           text,
+dateSignedUp        text
+);
+
+create table userWishlists (
+
+userID              INTEGER,
+wishlistID          text,
+dateWishlistAdded   text
+);
+
+create table wishlistItems (
+wishlistID          text,
+itemID              text,
+dateTrackingStarted text
 );
 
 
-create table items (
-itemID             text,
-fullPrice          text,
-itemType           text, # hardcover, kindle, etc
-usedPrice          text,
-newPrice           text,
-collectiblePrice   text,
-itemTypePrice      text, 
-primeStatus        text,
-categories         text,
-
-underABuck         text,
-priceDiff          text
+create table itemDetails (
+itemID              text,
+item_url            text,
+itemTitle           text,
+starRating          text,
+fullImageURL        text,
+thumbnailURL        text,
+primeStatus         text,
+categories          text
 );   
 
-
+create table itemVersions (
+itemID              text,
+itemType            text, -- hardcover - used, hardcover - new, paperback - used, used, new, kindle, etc
+itemTypePrice       text
+);
