@@ -45,8 +45,8 @@ def getItemsFromWishListPage(wishlistURL, wishlistID, pageNumber):
         # each item div in the list has an ID that starts with item_
         for item in wishListPage.findAll(id=re.compile('item_')):
             
-            itemTitle = item.find(('a'))["title"]
-            print itemTitle
+            # itemTitle = item.find(('a'))["title"]
+            # print itemTitle
             # if it isn't released yet, we don't need to add it
             if item.find('This title will be released'):
                 print "Not yet out, won't add to DB"
@@ -54,13 +54,13 @@ def getItemsFromWishListPage(wishlistURL, wishlistID, pageNumber):
             # start with the base URL, add the result from the link in the wishlist item
             # then split off everything after (and including) the first "?"
             itemURL = 'http://www.amazon.com' + item.find(class_='a-link-normal')["href"] .split("?",1)[0]
-            itemID = itemURL.split("/")[-1]
-            fullPrice = cleanPrice(item.find(id=re.compile('itemPrice_')).text)
+            ASIN = itemURL.split("/")[-1]
+            # fullPrice = cleanPrice(item.find(id=re.compile('itemPrice_')).text)
 
-            dateAdded = item.find(class_='dateAddedText').text.strip().split('\n')[0]
+            # dateAdded = item.find(class_='dateAddedText').text.strip().split('\n')[0]
 
             # get the star rating of the item - ranges from 1 to 5
-            starRating = getStarRating(item)
+            # starRating = getStarRating(item)
 
             # get thumbnail image URL for displaying elsewhere
 
@@ -69,17 +69,17 @@ def getItemsFromWishListPage(wishlistURL, wishlistID, pageNumber):
             # we want to take the first three sections, adding in the  "."s and then everything after the final "."
             # (probably always jpg but why not be sure)
 
-            thumbnailURL = item.find("img")['src']
-            thumbnailURLParts = thumbnailURL.split(".")
-            fullImageURL = thumbnailURLParts[0]+'.'+thumbnailURLParts[1]+'.'+thumbnailURLParts[2]+'.'+thumbnailURLParts[-1]
+            # thumbnailURL = item.find("img")['src']
+            # thumbnailURLParts = thumbnailURL.split(".")
+            # fullImageURL = thumbnailURLParts[0]+'.'+thumbnailURLParts[1]+'.'+thumbnailURLParts[2]+'.'+thumbnailURLParts[-1]
 
             itemList.append({"wishlistID": wishlistID,
-                             "itemID": itemID,
-                             "itemTitle": itemTitle,
-                             "itemURL": itemURL,
-                             "starRating": starRating,
-                             "thumbnailURL": thumbnailURL,
-                             "fullImageURL": fullImageURL
+                             "ASIN": ASIN,
+                             "itemTitle": itemTitle#,
+                             # "itemURL": itemURL,
+                             # "starRating": starRating,
+                             # "thumbnailURL": thumbnailURL,
+                             # "fullImageURL": fullImageURL
                              })
         return itemList
 
@@ -349,7 +349,7 @@ def cleanPrice(price):
 
 
 
-def refreshWishlist(wishlistID):
+def get_items_from_wishlist(wishlistID):
 
     # delete all items from wishlist in DB
     BASE_URL = 'http://www.amazon.com/gp/registry/wishlist/'
@@ -386,60 +386,63 @@ def refreshWishlist(wishlistID):
     for i in range(1, finalPage+1):
         allItems += getItemsFromWishListPage(wishlistURL=BASE_URL, wishlistID=wishlistID, pageNumber=i)
 
-    addWishlistItems(wishlistID, allItems)
+    return allItems
 
-    # get the info from the item page for each item
-    # category, prime status, etc    
-    for item in allItems:
-        print 'getting info for item ' +  item['itemTitle']
-        item.update(getInfoFromItemPage(item))
-        # TODO - get 5 at a time and wait a couple seconds
-        addItemDetails(item)
+    ###
+    ### Code below is from old version where we scraped the item pages. 
+    ### Might come back to it?
+    ###
+    # addWishlistItems(wishlistID, allItems)
 
-    print "DONE. Let's add these to a database"
+    # # get the info from the item page for each item
+    # # category, prime status, etc    
+    # for item in allItems:
+    #     print 'getting info for item ' +  item['itemTitle']
+    #     item.update(getInfoFromItemPage(item))
+    #     # TODO - get 5 at a time and wait a couple seconds
+    #     addItemDetails(item)
+
+    # print "DONE. Let's add these to a database"
 
 
 
 
-def refreshAllWishlists():
-    ''' get all active wishlists from DB
-        refresh them all
-    '''
+# def refreshAllWishlists():
+#     ''' get all active wishlists from DB
+#         refresh them all
+#     '''
     
-    wishlists = []
-    con = sqlite3.connect('wishlist.db')
-    with con:
-        cur = con.cursor()
-        sql = 'select wishlistID from userWishlists group by 1;'
-        cur.execute(sql)
-        data = cur.fetchall()
-        for d in data:
-            wishlists.append(d[0])
+#     wishlists = []
+#     con = sqlite3.connect('wishlist.db')
+#     with con:
+#         cur = con.cursor()
+#         sql = 'select wishlistID from userWishlists group by 1;'
+#         cur.execute(sql)
+#         data = cur.fetchall()
+#         for d in data:
+#             wishlists.append(d[0])
 
-    for w in wishlist:
-        # TODO - can this be parallellized without angering Amazon?
-        refreshWishlist(w)
-
-
+#     for w in wishlist:
+#         # TODO - can this be parallellized without angering Amazon?
+#         refreshWishlist(w)
 
 
 
 
+# def addWishlistItems(wishlistID, itemsToAdd):
 
-def addWishlistItems(wishlistID, itemsToAdd):
+#     itemIDs = [item['itemID'] for item in itemsToAdd]
+#     dateTrackingStarted = str(datetime.date.today())
 
-    itemIDs = [item['itemID'] for item in itemsToAdd]
-    dateTrackingStarted = str(datetime.date.today())
-
-    for i in itemIDs:
-        con = sqlite3.connect('wishlist.db')
-        with con:
-            cur = con.cursor()
-            t = (wishlistID, i, dateTrackingStarted)
-            sql = 'insert into wishlistItems (wishlistID, itemID, dateTrackingStarted) VALUES(?,?,?);'
-            cur.execute(sql,t)
+#     for i in itemIDs:
+#         con = sqlite3.connect('wishlist.db')
+#         with con:
+#             cur = con.cursor()
+#             t = (wishlistID, i, dateTrackingStarted)
+#             sql = 'insert into wishlistItems (wishlistID, itemID, dateTrackingStarted) VALUES(?,?,?);'
+#             cur.execute(sql,t)
     
-    return True
+#     return True
     
 
 def addItemDetails(item):
