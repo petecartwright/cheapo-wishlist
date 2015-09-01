@@ -272,12 +272,12 @@ def get_all_item_info(ASIN):
                                          "parent_attribs": parent_attribs
                                          },
                               "images": images,
-                              "attributes": attributes,
+                              "attributes": attributes
                               "offers": offers
                               })
         print 'done with ' + str(v)
         print 'Waiting...'
-        sleep(2.5)
+        sleep(2.2)
         print 'Done waiting...'
 
     return all_item_info
@@ -288,11 +288,6 @@ def main():
 
     ASIN = 'B00006JSUB'
     item = get_all_item_info(ASIN)
-
-    with open('item_info.txt','w') as f:
-        pprint.pprint(item, f)
-
-
 
 
 if __name__ == '__main__':
