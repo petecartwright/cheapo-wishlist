@@ -5,6 +5,8 @@ amazonconfig.py
 __pycache__/
 *.py[cod]
 
+PLAN
+
 # C extensions
 *.so
 

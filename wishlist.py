@@ -27,8 +27,11 @@ def get_items_from_wishlist_page(wishlistURL, wishlistID, pageNumber):
                 print "Not yet out, won't add to DB"
                 continue
             itemURL = 'http://www.amazon.com' + item.find(class_='a-link-normal')["href"] .split("?",1)[0]
+            date_added = item.find(class_='dateAddedText').text.strip().split('\n')[0].replace("Added ","")
             ASIN = itemURL.split("/")[-1]
-            itemList.append(ASIN)
+            itemList.append({"ASIN":ASIN,
+                             "date_added": date_added
+                             })
         return itemList
 
 
@@ -82,15 +85,15 @@ def get_items_from_wishlist(wishlistID):
     # run through each page:
     for i in range(1, finalPage+1):
         allItems += get_items_from_wishlist_page(wishlistURL=BASE_URL, wishlistID=wishlistID, pageNumber=i)
-        sleep(.5)
+        sleep(1)
 
     return allItems
 
-
-
 def main():
-    print get_items_from_wishlist('1ZF0FXNHUY7IG')
-
+    items = get_items_from_wishlist('1ZF0FXNHUY7IG')
+    for i in it
+    ems:
+        print i
 
 
 if __name__ == "__main__":

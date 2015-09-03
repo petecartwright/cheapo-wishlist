@@ -57,7 +57,7 @@ def getItemsFromWishListPage(wishlistURL, wishlistID, pageNumber):
             ASIN = itemURL.split("/")[-1]
             # fullPrice = cleanPrice(item.find(id=re.compile('itemPrice_')).text)
 
-            # dateAdded = item.find(class_='dateAddedText').text.strip().split('\n')[0]
+            dateAdded = item.find(class_='dateAddedText').text.strip().split('\n')[0].replace("Added ","")
 
             # get the star rating of the item - ranges from 1 to 5
             # starRating = getStarRating(item)
