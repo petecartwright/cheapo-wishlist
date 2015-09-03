@@ -26,7 +26,7 @@ def clean_response(response):
     return cleaned
 
 
-def get_parent_ASIN(ASIN, product_group='Book' ):
+def get_parent_ASIN(ASIN, amazon, product_group='Book' ):
     ''' input: Amazon ASIN and product group
        output: the ASIN of the parent or the AuthorityTitle for a book
                if the object doesn't have a parent (or is the parent), the same ASIN is returned
@@ -35,7 +35,6 @@ def get_parent_ASIN(ASIN, product_group='Book' ):
     parent_ASIN = ''
 
     if product_group == 'Book':
-        amazon = bottlenose.Amazon(AMAZON_KEY_ID, AMAZON_SECRET_KEY, AMAZON_AFFILIATE_ID)
         response = clean_response(amazon.ItemLookup(ItemId=ASIN, ResponseGroup="RelatedItems,ItemAttributes", Condition='All', RelationshipType='AuthorityTitle'))
         item = objectify.fromstring(response)
 
@@ -44,7 +43,6 @@ def get_parent_ASIN(ASIN, product_group='Book' ):
         else:
             parent_ASIN = ASIN
     else:
-        amazon = bottlenose.Amazon(AMAZON_KEY_ID, AMAZON_SECRET_KEY, AMAZON_AFFILIATE_ID)
         response = clean_response(amazon.ItemLookup(ItemId=ASIN, ResponseGroup="Variations", Condition='All' ))
         item = objectify.fromstring(response)
 
@@ -56,12 +54,11 @@ def get_parent_ASIN(ASIN, product_group='Book' ):
     return parent_ASIN
 
 
-def get_book_variations_from_page(ASIN, page_number=1):
+def get_book_variations_from_page(ASIN, amazon, page_number=1):
     ''' takes an ASIN and a page number
         returns a list of all variation ASINs on that page
     '''
     print 'getting variations on page ' + str(page_number)
-    amazon = bottlenose.Amazon(AMAZON_KEY_ID, AMAZON_SECRET_KEY, AMAZON_AFFILIATE_ID)
     response = clean_response(amazon.ItemLookup(ItemId=ASIN,
                                                 ResponseGroup="RelatedItems",
                                                 Condition='All',
@@ -79,12 +76,10 @@ def get_book_variations_from_page(ASIN, page_number=1):
     return variations_on_page
 
 
-def get_item_variations_from_parent(ASIN, product_group='Book'):
+def get_item_variations_from_parent(ASIN, amazon, product_group='Book'):
     ''' take an amazon "parent" ASIN
         returns a list of item variation ASINs
     '''
-
-    amazon = bottlenose.Amazon(AMAZON_KEY_ID, AMAZON_SECRET_KEY, AMAZON_AFFILIATE_ID)
 
     if product_group == 'Book':
         response = clean_response(amazon.ItemLookup(ItemId=ASIN,
@@ -124,12 +119,11 @@ def get_item_variations_from_parent(ASIN, product_group='Book'):
     return variationASINs
 
 
-def get_product_group(ASIN):
+def get_product_group(ASIN, amazon):
     ''' takes an ASIN
        returns the product group (Book, UnboxVideo, Kitchen, etc)
     '''
 
-    amazon = bottlenose.Amazon(AMAZON_KEY_ID, AMAZON_SECRET_KEY, AMAZON_AFFILIATE_ID)
     response = clean_response(amazon.ItemLookup(ItemId=ASIN, ResponseGroup="ItemAttributes", Condition='All' ))
     item = objectify.fromstring(response)
 
@@ -141,12 +135,11 @@ def get_product_group(ASIN):
         return product_group
 
 
-def get_offers(ASIN):
+def get_offers(ASIN, amazon):
     ''' take an ASIN
         return a list of all best-price offers with price, condition, and prime status
     '''
 
-    amazon = bottlenose.Amazon(AMAZON_KEY_ID, AMAZON_SECRET_KEY, AMAZON_AFFILIATE_ID)
     response = clean_response(amazon.ItemLookup(ItemId=ASIN, ResponseGroup="Offers", Condition='All' ))
     root = objectify.fromstring(response)
 
@@ -163,11 +156,10 @@ def get_offers(ASIN):
     return offers
 
 
-def get_images(ASIN):
+def get_images(ASIN, amazon):
     ''' take an ASIN
         return a dict with the Small, Medium, and Large image URLS and dimensions
     '''
-    amazon = bottlenose.Amazon(AMAZON_KEY_ID, AMAZON_SECRET_KEY, AMAZON_AFFILIATE_ID)
     try:
         response = clean_response(amazon.ItemLookup(ItemId=ASIN, ResponseGroup="Images", Condition='All' ))
     except Error, err:
@@ -194,8 +186,8 @@ def get_images(ASIN):
     return images
 
 
-def check_for_valid_ASIN(ASIN):
-    amazon = bottlenose.Amazon(AMAZON_KEY_ID, AMAZON_SECRET_KEY, AMAZON_AFFILIATE_ID)
+def check_for_valid_ASIN(ASIN, amazon):
+    
     response = clean_response(amazon.ItemLookup(ItemId=ASIN, ResponseGroup="ItemAttributes"))
     root = objectify.fromstring(response)
 
@@ -207,8 +199,8 @@ def check_for_valid_ASIN(ASIN):
         return True
 
 
-def get_item_attributes(ASIN):
-    amazon = bottlenose.Amazon(AMAZON_KEY_ID, AMAZON_SECRET_KEY, AMAZON_AFFILIATE_ID)
+def get_item_attributes(ASIN, amazon):
+
     response = clean_response(amazon.ItemLookup(ItemId=ASIN, ResponseGroup="ItemAttributes"))
     root = objectify.fromstring(response)
 
@@ -228,30 +220,30 @@ def get_item_attributes(ASIN):
     return item_attributes
 
 
-def get_all_item_info(ASIN):
+def get_all_item_info(ASIN, amazon):
 
-    assert check_for_valid_ASIN(ASIN) == True, "This is an invalid ASIN!"
+    assert check_for_valid_ASIN(ASIN=ASIN, amazon=amazon) == True, "This is an invalid ASIN!"
     print 'it\'s a valid ASIN'
     # different product types handle related items differently, so we need to
     # know how to handle this product
     print 'getting product_group'
-    product_group = get_product_group(ASIN)
+    product_group = get_product_group(ASIN=ASIN, amazon=amazon)
     print 'done getting product_group'
 
     # get parent ASIN if applicable
     # if there isn't a parent, this will return the same ASIN
     print 'getting parent_ASIN'
-    parent_ASIN = get_parent_ASIN(ASIN=ASIN, product_group=product_group)
+    parent_ASIN = get_parent_ASIN(ASIN=ASIN, amazon=amazon, product_group=product_group)
     print 'done getting parent_ASIN'
 
     print 'getting parent attribs'
-    parent_attribs = get_item_attributes(parent_ASIN)
+    parent_attribs = get_item_attributes(ASIN=parent_ASIN, amazon=amazon)
     print 'done getting parent attribs'
 
 
     # get variation ASINs
     print 'getting variations'
-    variations = get_item_variations_from_parent(ASIN=parent_ASIN, product_group=product_group)
+    variations = get_item_variations_from_parent(ASIN=parent_ASIN, amazon=amazon, product_group=product_group)
     print 'done getting variations'
 
     # for each variation:
@@ -259,13 +251,13 @@ def get_all_item_info(ASIN):
     for v in variations:
         print 'starting  ' + str(v)
         print 'about to get images'
-        images = get_images(v)
+        images = get_images(ASIN=v, amazon=amazon)
         print 'done getting images'
         print 'about to get attributes'
-        attributes = get_item_attributes(v)
+        attributes = get_item_attributes(ASIN=v, amazon=amazon)
         print 'done getting attributes'
         print 'about to get offers'
-        offers = get_offers(v)
+        offers = get_offers(ASIN=v, amazon=amazon)
         print 'done getting offers'
         all_item_info.append({"ASIN": ASIN,
                               "parent": {"parent_ASIN": parent_ASIN,
@@ -276,9 +268,6 @@ def get_all_item_info(ASIN):
                               "offers": offers
                               })
         print 'done with ' + str(v)
-        print 'Waiting...'
-        sleep(2.5)
-        print 'Done waiting...'
 
     return all_item_info
 
@@ -286,11 +275,12 @@ def get_all_item_info(ASIN):
 
 def main():
 
+    amazon = bottlenose.Amazon(AMAZON_KEY_ID, AMAZON_SECRET_KEY, AMAZON_AFFILIATE_ID, MaxQPS=0.9)
     ASIN = 'B00006JSUB'
-    item = get_all_item_info(ASIN)
+    item = get_all_item_info(ASIN=ASIN, amazon=amazon)
 
-    with open('item_info.txt','w') as f:
-        pprint.pprint(item, f)
+
+    print item
 
 
 
