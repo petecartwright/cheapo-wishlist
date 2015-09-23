@@ -21,6 +21,7 @@ class User(db.Model):
     def __repr__(self):
         return '<User %r>' % (self.username)
 
+
 class UserSettings(db.Model):
     id          = db.Column(db.Integer, primary_key=True)
     setting1    = db.Column(db.String(40))
@@ -43,6 +44,7 @@ wishlistItems = db.Table('wishlistItems',
 class Wishlist(db.Model):
     id               = db.Column(db.Integer, primary_key=True)
     amazonWishlistID = db.Column(db.String(40), unique=True)
+    name             = db.Column(db.String(40))
     items            = db.relationship('Item', secondary=wishlistItems,
                                        backref=db.backref('wishlists', lazy='dynamic'))
     def __repr__(self):
@@ -58,10 +60,12 @@ class ParentItem(db.Model):
 class Item(db.Model):
     id                      = db.Column(db.Integer, primary_key=True)
     ASIN                    = db.Column(db.String(40), unique=True)
+    URL                     = db.Column(db.String(1000))
     list_price_amount       = db.Column(db.Integer)
     list_price_formatted    = db.Column(db.String(40))
     name                    = db.Column(db.String(400))
     product_group           = db.Column(db.String(40))
+    date_last_checked       = db.Column(db.Date)
     images                  = db.relationship('Image', backref='item', lazy='dynamic')
     offers                  = db.relationship('Offer', backref='item', lazy='dynamic')
     parent_id               = db.Column(db.Integer, db.ForeignKey('parent_item.id'))
@@ -100,7 +104,6 @@ class Offer(db.Model):
         return '<Offer %r>' % (self.id)
 
 
-
 class Variation(db.Model):
     id                      = db.Column(db.Integer, primary_key=True)
     parent_ASIN             = db.Column(db.String(40))  
@@ -108,18 +111,4 @@ class Variation(db.Model):
 
     def __repr__(self):
         return '<Variation %r>' % (self.id)
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 

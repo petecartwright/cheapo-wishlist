@@ -6,10 +6,21 @@ import random
 import datetime
 from time import sleep
 
+BASE_URL = 'http://www.amazon.com/gp/registry/wishlist/'
 
-def get_items_from_wishlist_page(wishlistURL, wishlistID, pageNumber):
+def get_wishlist_name(wishlistID):
+    print 'getting wishlist name for ' + str(wishlistID)
+    r = requests.get(BASE_URL+'/'+wishlistID)
+    wishListPage = BeautifulSoup(r.content, "html.parser")
+
+    name = wishListPage.find(class_="a-size-extra-large stable clip-text").text.strip()
+
+    return name
+
+
+def get_items_from_wishlist_page(wishlistID, pageNumber):
     print 'getting items from page ' + str(pageNumber)
-    r = requests.get(wishlistURL+'/'+wishlistID+'/?page='+str(pageNumber))
+    r = requests.get(BASE_URL+'/'+wishlistID+'/?page='+str(pageNumber))
     wishListPage = BeautifulSoup(r.content, "html.parser")
 
     # for each product on this page:
@@ -58,8 +69,6 @@ def is_invalid_wishlist(wishListPage):
 
 def get_items_from_wishlist(wishlistID):
 
-    # delete all items from wishlist in DB
-    BASE_URL = 'http://www.amazon.com/gp/registry/wishlist/'
     # connect to wishlist page
     wishlistURL = BASE_URL+wishlistID
     r = requests.get(wishlistURL)
@@ -84,15 +93,14 @@ def get_items_from_wishlist(wishlistID):
 
     # run through each page:
     for i in range(1, finalPage+1):
-        allItems += get_items_from_wishlist_page(wishlistURL=BASE_URL, wishlistID=wishlistID, pageNumber=i)
+        allItems += get_items_from_wishlist_page(wishlistID=wishlistID, pageNumber=i)
         sleep(1)
 
     return allItems
 
 def main():
     items = get_items_from_wishlist('1ZF0FXNHUY7IG')
-    for i in it
-    ems:
+    for i in items:
         print i
 
 
