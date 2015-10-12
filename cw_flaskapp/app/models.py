@@ -13,7 +13,7 @@ class User(db.Model):
     username    = db.Column(db.String(80), unique=True)
     email       = db.Column(db.String(120), unique=True)
     password_hash = db.Column(db.String(128))
-
+    logged_in   = db.Column(db.Boolean, default=False)
     wishlists   = db.relationship('Wishlist', secondary=userWishlists,
                                 backref=db.backref('users', lazy='dynamic'))
     settings    = db.relationship('UserSettings', backref='user', lazy='dynamic')

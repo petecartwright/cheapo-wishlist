@@ -36,7 +36,6 @@ def wishlist_add():
 
     form = WishlistForm
     if request.method == 'GET':
-
         return render_template('wishlist_add.html', 
                                form=form)
 
