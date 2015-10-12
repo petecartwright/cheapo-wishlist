@@ -1,6 +1,11 @@
 # amazon keys
 amazonconfig.py
 
+# virtualenvs
+cheapowishlist/
+cw_flaskapp/flask/
+
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
@@ -70,3 +75,5 @@ target/
 *.db
 
 wishlist.db
+
+wishlist_old.py
