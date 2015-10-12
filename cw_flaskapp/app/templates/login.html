@@ -1,0 +1,20 @@
+{% extends 'base.html' %}
+
+
+{% block content %}
+This is the login page
+
+{% block messages %}
+  {{ super() }}
+{% endblock %}
+
+<form method="POST" action="">
+    {{ form.hidden_tag() }}
+    {{ form.user_email.label }} {{ form.user_email(size=20) }}
+    {{ form.password.label }} {{ form.password(size=20, type='password') }}
+    <input type="submit" value="Go">
+</form>
+
+{% endblock %}
+
+
