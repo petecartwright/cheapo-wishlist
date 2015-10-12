@@ -17,7 +17,6 @@ PLAN
 
 wishlist.db
 errors/
-*.html
 *.ipynb
 *.txt
 
