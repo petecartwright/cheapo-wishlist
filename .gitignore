@@ -76,3 +76,5 @@ target/
 wishlist.db
 
 wishlist_old.py
+
+cw_flaskapp/wlp.html
