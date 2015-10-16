@@ -1,7 +1,7 @@
 from app  import app, db, lm
 from .models import Wishlist, User, UserSettings, ParentItem, Item
 from flask import render_template, request, url_for, redirect, g, session, flash
-from flask.ext.login import login_user, login_required, current_user
+from flask.ext.login import login_user, logout_user, login_required, current_user
 from forms import LoginForm, WishlistForm
 
 
@@ -22,6 +22,18 @@ def load_user(user_id):
     return User.query.get(int(user_id))
 
 
+def is_invalid_wishlist(wishlist_id):
+
+    wishlistURL = 'http://www.amazon.com/gp/registry/wishlist/' + wishlist_id
+    r = requests.get(wishlistURL)
+    wishlistFirstPage = BeautifulSoup(r.content, "html.parser")
+
+    if wishlistFirstPage.text.find("The Web address you entered is not a functioning page on our site") != -1:
+        return True
+    else:
+        return False
+
+
 #########################################################################
 #########################################################################
 #
@@ -33,7 +45,7 @@ def load_user(user_id):
 
 @app.route('/')
 @app.route('/index')
-@login_required
+# @login_required
 def index():
     return render_template('index.html')
 
@@ -55,44 +67,63 @@ def wishlist_add():
         return render_template('wishlist_add.html', 
                                form=form)
 
-    # check to see if wishlist is already in database
-    wishlists = Wishlist.query(Wishlist.amazonWishlistID).all()
+    if form.validate_on_submit():
+        
+        wishlist_id = form.wishlist_id.data
+        # make sure we have a wishlist ID
+        if wishlist_id is None:
+            flash('No wishlist ID provided')
+            redirect(url_for('wishlist_add'))
 
-    wishlist_id = request['wishlist_id']
+        # make sure this is a real wishlist ID 
+        if is_invalid_wishlist(wishlist_id):
+            flash("That's not a valid wishlist ID - check again!")
+            redirect(url_for('wishlist_add'))
 
-    # make sure we have a wishlist ID
-    if wishlist_id is None:
-        flash('No wishlist ID provided')
-        redirect(url_for('wishlist_add'))
+        # get current user
+        u = User.query.filter_by(id=current_user.id).first()
+        # check to see if wishlist is already in database
+        existing_wishlist = Wishlist.query.filter_by(amazonWishlistID=wishlist_id).first()
+        
+        if existing_wishlist:    
+            u.wishlists.append(existing_wishlist)
+            db.session.add(u)
+            db.session.commit()
+            flash('This wishlist is already in our database - adding to your account')
+            redirect(url_for('wishlist_add'))
 
-    # validate wishlist ID - there's code for this somewhere...
-    ## TODO - find the code for this
-    # if wishlist_id is None:
-    #     flash("That's not a valid wishlist ID - check again!")
-    #     redirect(url_for('wishlist_add'))
+        new_wishlist = Wishlist(amazonWishlistID=wishlist_id)
 
-    if wishlist_id in wishlists:
-        flash('This wishlist is already in our database - adding to your account')
-        ##TODO - Add the wishlist to the user's account.
-        ##       Need to implement user system first
-        redirect(url_for('wishlist_add'))
+        # get wishlist name from the Amazon page
+        ## TODO - find the code for this
+        # new_wishlist.name = get_wishlist_name(wishlist_id)
 
-    new_wishlist = Wishlist(amazonWishlistID=wishlist_id)
+        db.session.add(new_wishlist)
+        db.session.commit()
 
-    # get wishlist name from the Amazon page
-    ## TODO - find the code for this
+        # add the wishlist to the user
+        u.wishlists.append(new_wishlist)
+        db.session.add(u)
+        db.session.commit()
 
-    # add the wishlist<->user list
-    ## TODO - write the code for this
-    
-    db.session.add(new_wishlist)
-    db.session.commit()
-
+        flash('Wishlist added!')
+        return redirect(url_for('wishlist'))
 
 @app.route('/logout')
 @login_required
 def logout():
-    pass
+
+    # mark the user in the database as logged out
+    user_id = current_user.id
+    u = User.query.filter_by(id=user_id).first()
+    u.logged_in = False
+    db.session.add(u)
+    db.session.commit()
+    # logout from flask-login
+    logout_user()
+    flash("You've been logged out!")
+    return redirect(url_for('index'))
+
 
 
 @app.route('/login', methods=['GET','POST'])
