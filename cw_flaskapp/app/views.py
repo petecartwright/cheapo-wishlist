@@ -39,6 +39,7 @@ def user_exists(email):
                False otherwise
     '''
     # try to get that user by email
+    print email
     u = User.query.filter_by(email=email).first()
     if u:
         return True
@@ -143,7 +144,7 @@ def login():
         password = form.password.data
 
 
-        if user_exists(user_email):
+        if not user_exists(user_email):
             # if the user doesn't exist
             flash("this user doesn't exist!")
             return redirect(url_for('login'))
