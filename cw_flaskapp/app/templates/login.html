@@ -10,9 +10,9 @@ This is the login page
 
 <form method="POST" action="">
     {{ form.hidden_tag() }}
-    {{ form.user_email.label }} {{ form.user_email(size=20) }}
-    {{ form.password.label }} {{ form.password(size=20, type='password') }}
-    <input type="submit" value="Go">
+    {{ form.user_email.label }} {{ form.user_email(size=20) }}<br />
+    {{ form.password.label }} {{ form.password(size=20, type='password') }}<br />
+    <input type="submit" value="Login">
 </form>
 
 {% endblock %}
