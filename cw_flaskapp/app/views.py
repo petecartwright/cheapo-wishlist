@@ -2,7 +2,7 @@ from app  import app, db, lm
 from .models import Wishlist, User, UserSettings, ParentItem, Item
 from flask import render_template, request, url_for, redirect, g, session, flash
 from flask.ext.login import login_user, logout_user, login_required, current_user
-from forms import LoginForm, WishlistForm
+from forms import LoginForm, WishlistForm, RegistrationForm
 
 
 
@@ -29,6 +29,18 @@ def is_invalid_wishlist(wishlist_id):
     wishlistFirstPage = BeautifulSoup(r.content, "html.parser")
 
     if wishlistFirstPage.text.find("The Web address you entered is not a functioning page on our site") != -1:
+        return True
+    else:
+        return False
+
+def user_exists(email):
+    ''' take an email address
+        return True if that user is already in the db
+               False otherwise
+    '''
+    # try to get that user by email
+    u = User.query.filter_by(email=email).first()
+    if u:
         return True
     else:
         return False
@@ -109,21 +121,12 @@ def wishlist_add():
         flash('Wishlist added!')
         return redirect(url_for('wishlist'))
 
-@app.route('/logout')
-@login_required
-def logout():
 
-    # mark the user in the database as logged out
-    user_id = current_user.id
-    u = User.query.filter_by(id=user_id).first()
-    u.logged_in = False
-    db.session.add(u)
-    db.session.commit()
-    # logout from flask-login
-    logout_user()
-    flash("You've been logged out!")
-    return redirect(url_for('index'))
-
+################################################################################
+#
+#   Login/Logout/Register
+#
+################################################################################
 
 
 @app.route('/login', methods=['GET','POST'])
@@ -139,13 +142,14 @@ def login():
         user_email = form.user_email.data
         password = form.password.data
 
-        # see if the user is in the database
-        u = User.query.filter_by(email=user_email).first()
-        if not u:
+
+        if user_exists(user_email):
             # if the user doesn't exist
             flash("this user doesn't exist!")
             return redirect(url_for('login'))
         else:
+            # see if the user is in the database    
+            u = User.query.filter_by(email=user_email).first()
             # see if the password hashes match
             if u.verify_password(password):
                 # if it does, login with flask-login
@@ -167,6 +171,41 @@ def login():
     flash('there was a login error')
     return redirect(url_for('login'))
 
+
+@app.route('/logout')
+@login_required
+def logout():
+
+    # mark the user in the database as logged out
+    user_id = current_user.id
+    u = User.query.filter_by(id=user_id).first()
+    u.logged_in = False
+    db.session.add(u)
+    db.session.commit()
+    # logout from flask-login
+    logout_user()
+    flash("You've been logged out!")
+    return redirect(url_for('index'))
+
+
+@app.route('/register', methods=['GET','POST'])
+def register():
+    form = RegistrationForm()
+
+    if form.validate_on_submit():
+        email = form.email.data
+        password = form.password.data
+
+        if user_exists(email):
+            flash("there's already an account with this email address!")
+            return redirect(url_for('register'))
+        else:
+            flash("that user doesn't exist - nice!")
+            return redirect(url_for('register'))
+
+
+    return(render_template('register.html',
+                           form=form))
 
 
 

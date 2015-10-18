@@ -1,3 +1,19 @@
 {% extends 'base.html' %}
 
 
+{% block content %}
+This is the registration page
+
+{% block messages %}
+  {{ super() }}
+{% endblock %}
+
+<form method="POST" action="">
+    {{ form.hidden_tag() }}
+    {{ form.email.label }} {{ form.email(size=20) }}<br />
+    {{ form.password.label }} {{ form.password(size=20, type='password') }}<br />
+    {{ form.confirm.label }} {{ form.confirm(size=20, type='password') }}
+    <input type="submit" value="Go">
+</form>
+
+{% endblock %}

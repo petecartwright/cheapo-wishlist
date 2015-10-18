@@ -6,6 +6,8 @@ import unittest
 from config import basedir
 from app import app, db
 from app.models import User, Wishlist
+from views import user_exists
+
 
 class TestCase(unittest.TestCase):
     def setUp(self):
@@ -18,6 +20,16 @@ class TestCase(unittest.TestCase):
     def tearDown(self):
         db.session.remove()
         db.drop_all()
+
+    def test_user_exists(self):
+        u = User(username='Test User', email="test@email.com")
+        db.session.add(u)
+        db.session.commit()
+        valid_email = u.email
+        invalid_email = "this_email_isnt_in_the_db@gmail.com"
+        assert user_exists(valid_email)
+        assert not user_exists(valid_email)
+
 
     
     def test_user_password(self):
