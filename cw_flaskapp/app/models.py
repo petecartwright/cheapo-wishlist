@@ -32,12 +32,11 @@ class User(UserMixin, db.Model):
         return check_password_hash(self.password_hash, password)
 
 
-    def __init__(self, username, email):
-        self.username = username
+    def __init__(self, email):
         self.email = email
 
     def __repr__(self):
-        return '<User %r>' % (self.username)
+        return '<User %r>' % (self.email)
 
 
 class UserSettings(db.Model):

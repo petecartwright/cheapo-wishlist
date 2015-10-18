@@ -12,8 +12,8 @@ This is the registration page
     {{ form.hidden_tag() }}
     {{ form.email.label }} {{ form.email(size=20) }}<br />
     {{ form.password.label }} {{ form.password(size=20, type='password') }}<br />
-    {{ form.confirm.label }} {{ form.confirm(size=20, type='password') }}
-    <input type="submit" value="Go">
+    {{ form.confirm.label }} {{ form.confirm(size=20, type='password') }}<br />
+    <input type="submit" value="Register New User">
 </form>
 
 {% endblock %}

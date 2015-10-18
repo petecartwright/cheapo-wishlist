@@ -197,11 +197,16 @@ def register():
         password = form.password.data
 
         if user_exists(email):
-            flash("there's already an account with this email address!")
+            flash("there's already an account with this email address! Did you mean to log in?")
             return redirect(url_for('register'))
-        else:
-            flash("that user doesn't exist - nice!")
-            return redirect(url_for('register'))
+        # so let's create the user
+        new_user = User(email=email)
+        new_user.password = password
+        new_user.logged_in = True
+        db.session.add(new_user)
+        db.session.commit()
+        login_user(new_user)
+        return redirect(url_for('index'))
 
 
     return(render_template('register.html',
