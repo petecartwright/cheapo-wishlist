@@ -8,7 +8,49 @@ from time import sleep
 
 BASE_URL = 'http://www.amazon.com/gp/registry/wishlist/'
 
+
+#############################################
+#
+#   Quickie Functions
+#
+#############################################
+
+def is_empty_wishlist(wishlistPage):
+    """ Return True if the wishlist has no items in it, False otherwise
+
+        ## TODO - Obviously this hardcoding sucks - add this to tests with "known bad" so we notice when they break
+    """
+    if wishlistPage.text.find("0 items on list") != -1:
+        return True
+    else:
+        return False
+
+
+def is_private_wishlist(wishlistPage):
+    """ Return True if the wishlist is private, False otherwise
+
+    ## TODO - Obviously this hardcoding sucks - add this to tests with "known bad" so we notice when they break
+    """
+    if wishlistPage.text.find("If this is your Wish List, please sign in") != -1:
+        return True
+    else:
+        return False
+
+
+def is_invalid_wishlist(wishListPage):
+    """ Return True if the wishlist ID is not valid, False otherwise
+
+        ## TODO - Obviously this hardcoding sucks - add this to tests with "known bad" so we notice when they break
+    """
+    if wishListPage.text.find("The Web address you entered is not a functioning page on our site") != -1:
+        return True
+    else:
+        return False
+
+
 def get_wishlist_name(wishlistID):
+    """ Take an wishlistID and return the name of the wishlist (ex - "Pete's Wishlist" or "Christmas List" or "Kitchen Stuff I Want", etc)
+    """
     print 'getting wishlist name for ' + str(wishlistID)
     r = requests.get(BASE_URL+'/'+wishlistID)
     wishListPage = BeautifulSoup(r.content, "html.parser")
@@ -19,6 +61,14 @@ def get_wishlist_name(wishlistID):
 
 
 def get_items_from_wishlist_page(wishlistID, pageNumber):
+    """ Take a wishlist ID and a page number, and return a list of all items on that page
+
+        Returns a list of dicts with these keys:
+            itemURL = URL for that variation of the items
+            date_added = date the item was added to the wishListPage
+            ASIN = the amazon ASIN for that variation of the item
+
+    """
     print 'getting items from page ' + str(pageNumber)
     r = requests.get(BASE_URL+'/'+wishlistID+'/?page='+str(pageNumber))
     wishListPage = BeautifulSoup(r.content, "html.parser")
@@ -26,7 +76,6 @@ def get_items_from_wishlist_page(wishlistID, pageNumber):
     # for each product on this page:
         # get the name, URL, new price, prime status, used price
     itemList = []
-    # TODO PTC - handle empty wishlist
     listOfItemsOnPage = wishListPage.findAll(id=re.compile('item_'))
     if len(listOfItemsOnPage) == 0:
         return []
@@ -46,29 +95,9 @@ def get_items_from_wishlist_page(wishlistID, pageNumber):
         return itemList
 
 
-def is_empty_wishlist(wishlistPage):
-    if wishlistPage.text.find("0 items on list") != -1:
-        return True
-    else:
-        return False
-
-
-def is_private_wishlist(wishlistPage):
-    if wishlistPage.text.find("If this is your Wish List, please sign in") != -1:
-        return True
-    else:
-        return False
-
-
-def is_invalid_wishlist(wishListPage):
-    if wishListPage.text.find("The Web address you entered is not a functioning page on our site") != -1:
-        return True
-    else:
-        return False
-
-
 def get_items_from_wishlist(wishlistID):
-
+    """ Takes a wishlist ID, validates that it's usable, gets a list of all items on it
+    """
     # connect to wishlist page
     wishlistURL = BASE_URL+wishlistID
     r = requests.get(wishlistURL)
@@ -97,6 +126,7 @@ def get_items_from_wishlist(wishlistID):
         sleep(1)
 
     return allItems
+
 
 def main():
     items = get_items_from_wishlist('1ZF0FXNHUY7IG')

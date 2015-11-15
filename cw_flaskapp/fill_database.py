@@ -1,11 +1,14 @@
 from app import db
 from app.models import Wishlist
 
+# create a wishlist
 w = Wishlist(amazonWishlistID='U59W5QG1QZ0U', name = 'Temp')
 
 db.session.add(w)
 db.session.commit()
 
+
+# create some users
 u1 = User(username='pete', email='pete.cartwright@gmail.com')
 u1.wishlists.append(w)
 
