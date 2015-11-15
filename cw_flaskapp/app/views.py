@@ -14,6 +14,7 @@ from forms import LoginForm, WishlistForm, RegistrationForm
 #########################################################################
 #########################################################################
 
+@app.before_request
 def before_request():
     g.user = current_user
 
@@ -23,7 +24,11 @@ def load_user(user_id):
 
 
 def is_invalid_wishlist(wishlist_id):
+    ''' Take an amazon wishlist ID, return a True/False invalid status.
 
+        Yes the text I'm checking for is hardcoded, yes this is a bad idea.
+
+    '''
     wishlistURL = 'http://www.amazon.com/gp/registry/wishlist/' + wishlist_id
     r = requests.get(wishlistURL)
     wishlistFirstPage = BeautifulSoup(r.content, "html.parser")
@@ -33,11 +38,9 @@ def is_invalid_wishlist(wishlist_id):
     else:
         return False
 
+
 def user_exists(email):
-    ''' take an email address
-        return True if that user is already in the db
-               False otherwise
-    '''
+    ''' Take an email address, return True if that user is already in the db, False otherwise '''
     # try to get that user by email
     print email
     u = User.query.filter_by(email=email).first()
@@ -70,9 +73,8 @@ def wishlist(wishlist_id):
     else:
         return 'there is a wishlist with ID ' + str(wishlist_id) +'.'
         
-
 @app.route('/wishlist/add', methods=['GET','POST'])
-# @lm.login_required
+@login_required
 def wishlist_add():
 
     form = WishlistForm
@@ -121,6 +123,14 @@ def wishlist_add():
 
         flash('Wishlist added!')
         return redirect(url_for('wishlist'))
+
+
+
+@app.route('/user/<user_id>')
+def user(user_id):
+    return render_template('user.html')
+
+
 
 
 ################################################################################
