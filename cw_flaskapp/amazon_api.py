@@ -267,6 +267,10 @@ def get_item_attributes(ASIN, amazon_api=None):
 
 
 def get_all_item_info(ASIN, amazon_api=None):
+    """ Take an ASIN, return a dict with parent info and attribs/offers/images for all variations
+
+    """
+
 
     if amazon_api is None:
         amazon_api = get_amazon_api()
