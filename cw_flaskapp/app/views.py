@@ -1,9 +1,8 @@
 from app  import app, db, lm
 from .models import Wishlist, User, UserSettings, ParentItem, Item
-from flask import render_template, request, url_for, redirect, g, session, flash
+from flask import render_template, request, url_for, redirect, g, session, flash, Markup
 from flask.ext.login import login_user, logout_user, login_required, current_user
 from forms import LoginForm, WishlistForm, RegistrationForm
-
 
 
 #########################################################################
@@ -17,6 +16,7 @@ from forms import LoginForm, WishlistForm, RegistrationForm
 @app.before_request
 def before_request():
     g.user = current_user
+
 
 @lm.user_loader
 def load_user(user_id):
@@ -65,6 +65,7 @@ def user_exists(email):
 def index():
     return render_template('index.html')
 
+
 @app.route('/wishlist/<wishlist_id>')
 def wishlist(wishlist_id):
     wishlist = Wishlist.query.filter_by(amazonWishlistID=wishlist_id).first()
@@ -73,6 +74,7 @@ def wishlist(wishlist_id):
     else:
         return 'there is a wishlist with ID ' + str(wishlist_id) +'.'
         
+
 @app.route('/wishlist/add', methods=['GET','POST'])
 @login_required
 def wishlist_add():
@@ -125,17 +127,14 @@ def wishlist_add():
         return redirect(url_for('wishlist'))
 
 
-
 @app.route('/user/<user_id>')
 def user(user_id):
     return render_template('user.html')
 
 
-
-
 ################################################################################
 #
-#   Login/Logout/Register
+#   User Stuff - Login/Logout/Register
 #
 ################################################################################
 
@@ -152,7 +151,6 @@ def login():
 
         user_email = form.user_email.data
         password = form.password.data
-
 
         if not user_exists(user_email):
             # if the user doesn't exist
@@ -208,7 +206,7 @@ def register():
         password = form.password.data
 
         if user_exists(email):
-            flash("there's already an account with this email address! Did you mean to log in?")
+            flash(Markup("there's already an account with this email address! Did you mean to <a href=\""+ url_for('login') + "\"> log in </a> ?"))
             return redirect(url_for('register'))
         # so let's create the user
         new_user = User(email=email)
@@ -218,8 +216,7 @@ def register():
         db.session.commit()
         login_user(new_user)
         return redirect(url_for('index'))
-
-
+        
     return(render_template('register.html',
                            form=form))
 
