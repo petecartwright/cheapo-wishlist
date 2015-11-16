@@ -1,6 +1,6 @@
 from app  import app, db, lm, celery
 from .models import Wishlist, User, UserSettings, ParentItem, Item
-from flask import render_template, request, url_for, redirect, g, session, flash, Markup
+from flask import render_template, request, url_for, redirect, g, session, flash, Markup, jsonify
 from flask.ext.login import login_user, logout_user, login_required, current_user
 from forms import LoginForm, WishlistForm, RegistrationForm
 import wishlist as w
