@@ -1,8 +1,12 @@
-from app  import app, db, lm
+from app  import app, db, lm, celery
 from .models import Wishlist, User, UserSettings, ParentItem, Item
 from flask import render_template, request, url_for, redirect, g, session, flash, Markup
 from flask.ext.login import login_user, logout_user, login_required, current_user
 from forms import LoginForm, WishlistForm, RegistrationForm
+import wishlist as w
+import requests
+from bs4 import BeautifulSoup
+
 
 
 #########################################################################
@@ -23,20 +27,24 @@ def load_user(user_id):
     return User.query.get(int(user_id))
 
 
-def is_invalid_wishlist(wishlist_id):
-    ''' Take an amazon wishlist ID, return a True/False invalid status.
+def is_usable_wishlist(wishlist_id):
+    ''' Take an amazon wishlist ID, return a True if it's usable. False otherwise
 
-        Yes the text I'm checking for is hardcoded, yes this is a bad idea.
+        ##TODO - this should have a proper error message in it. 
 
     '''
     wishlistURL = 'http://www.amazon.com/gp/registry/wishlist/' + wishlist_id
     r = requests.get(wishlistURL)
     wishlistFirstPage = BeautifulSoup(r.content, "html.parser")
 
-    if wishlistFirstPage.text.find("The Web address you entered is not a functioning page on our site") != -1:
-        return True
-    else:
+
+    if (w.is_empty_wishlist(wishlistFirstPage) or
+        w.is_invalid_wishlist(wishlistFirstPage) or
+        w.is_private_wishlist(wishlistFirstPage)
+        ):      
         return False
+    else:
+        return True
 
 
 def user_exists(email):
@@ -48,6 +56,47 @@ def user_exists(email):
         return True
     else:
         return False
+
+
+#########################################################################
+#########################################################################
+#
+#   Celery tasks and status routes!
+#
+#########################################################################
+#########################################################################
+
+@celery.task(bind=True)
+def refresh_wishlist_on_demand_task(wishlist_id):
+    return {'status': 'this is the status', 'result': 'this is the result'}
+
+
+# 'liberally borrowed' from Miguel Grinberg's tutorial here:
+#  http://blog.miguelgrinberg.com/post/using-celery-with-flask
+@app.route('/refreshstatus/<task_id>')
+def refreshstatus(task_id):
+    
+    task = refresh_wishlist_on_demand_task.AsyncResult(task_id)
+    if task.state == 'PENDING':
+        # job hasn't started
+        response = {'state': task.state,
+                    'status': 'Pending...'
+                    }
+    elif task.state != 'FAILURE':
+        response = {'state': task.state,
+                    'status': task.info.get('status','')
+                    }
+        if 'result' in task.info:
+            response['result'] = task.info['result']
+    else:
+        # something went wrong in the background job
+        response = {'state': task.state,
+                    'status': str(task.info),  # this is the exception raised
+                    }
+
+    return jsonify(response)
+
+
 
 
 #########################################################################
@@ -93,7 +142,7 @@ def wishlist_add():
             redirect(url_for('wishlist_add'))
 
         # make sure this is a real wishlist ID 
-        if is_invalid_wishlist(wishlist_id):
+        if not is_usable_wishlist(wishlist_id):
             flash("That's not a valid wishlist ID - check again!")
             redirect(url_for('wishlist_add'))
 
