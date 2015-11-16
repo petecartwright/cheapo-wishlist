@@ -77,10 +77,16 @@ def refresh_wishlist_on_demand_task(wishlist_id):
 def refreshstatus(task_id):
     
     task = refresh_wishlist_on_demand_task.AsyncResult(task_id)
-    if task.state == 'PENDING':
+    print task
+    if not task:
+        response = {'state': 'Nonexistent',
+                    'status': 'No status'}
+
+    elif task.state == 'PENDING':
         # job hasn't started
         response = {'state': task.state,
-                    'status': 'Pending...'
+                    'status': 'Pending...',
+                    'result': 'this is the result'
                     }
     elif task.state != 'FAILURE':
         response = {'state': task.state,
