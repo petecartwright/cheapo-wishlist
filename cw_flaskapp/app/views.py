@@ -5,7 +5,6 @@ from flask.ext.login import login_user, logout_user, login_required, current_use
 from forms import LoginForm, WishlistForm, RegistrationForm
 
 
-
 #########################################################################
 #########################################################################
 #
@@ -17,6 +16,7 @@ from forms import LoginForm, WishlistForm, RegistrationForm
 @app.before_request
 def before_request():
     g.user = current_user
+
 
 @lm.user_loader
 def load_user(user_id):
@@ -127,12 +127,9 @@ def wishlist_add():
         return redirect(url_for('wishlist'))
 
 
-
 @app.route('/user/<user_id>')
 def user(user_id):
     return render_template('user.html')
-
-
 
 
 ################################################################################
@@ -219,8 +216,7 @@ def register():
         db.session.commit()
         login_user(new_user)
         return redirect(url_for('index'))
-
-
+        
     return(render_template('register.html',
                            form=form))
 
