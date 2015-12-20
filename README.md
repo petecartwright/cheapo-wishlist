@@ -1,1 +1,1 @@
-# cheapo-wishlist
+# Wishlistr
