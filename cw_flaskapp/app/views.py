@@ -124,7 +124,8 @@ def index():
 
 @app.route('/wishlist/<wishlist_id>')
 def wishlist(wishlist_id):
-    wishlist = Wishlist.query.filter_by(amazonWishlistID=wishlist_id).first()
+    ## todo - it would be nice if this handled both internal wishlist IDs (autoincrementint ints) and amazon wishlist IDs
+    wishlist = Wishlist.query.filter_by(id=wishlist_id).first()
     if wishlist == None:
         return 'No wishlist with ID ' + str(wishlist_id) +'.'
     else:
@@ -170,7 +171,7 @@ def wishlist_add():
         new_wishlist = Wishlist(amazonWishlistID=wishlist_id)
 
         # get wishlist name from the Amazon page
-        new_wishlist.name = get_wishlist_name(wishlist_id)
+        new_wishlist.name = w.get_wishlist_name(wishlist_id)
 
         db.session.add(new_wishlist)
         db.session.commit()
@@ -187,7 +188,16 @@ def wishlist_add():
 
 @app.route('/user/<user_id>')
 def user(user_id):
-    return render_template('user.html')
+
+    # get all wishlists for user
+    u = User.query.filter_by(id=user_id).first()
+    if not u:
+        return render_template('404.html')
+
+    wishlists = u.wishlists
+
+    return render_template('user.html', 
+                           wishlists=wishlists)
 
 
 ################################################################################
