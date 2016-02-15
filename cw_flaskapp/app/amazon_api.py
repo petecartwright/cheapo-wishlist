@@ -16,7 +16,7 @@ def debug_print_lxml(to_print):
 
 def get_amazon_api():
     amazon_api = bottlenose.Amazon(AMAZON_KEY_ID, AMAZON_SECRET_KEY, AMAZON_AFFILIATE_ID, MaxQPS=0.9)
-    return amazon
+    return amazon_api
 
 
 def clean_response(response):

@@ -1,7 +1,7 @@
 from app import db
 from app.models import Wishlist, Item, ParentItem, Image
-from amazon_api import get_parent_ASIN, get_item_attributes, get_amazon, get_images
-from wishlist import get_items_from_wishlist, get_wishlist_name
+from app.amazon_api import get_parent_ASIN, get_item_attributes, get_amazon_api, get_images
+from app.wishlist import get_items_from_wishlist, get_wishlist_name
 from datetime import datetime
 
 
@@ -12,7 +12,7 @@ def add_wishlist_items_to_db(wishlist, wishlist_items):
         item_to_add = Item.query.filter_by(ASIN=i['ASIN']).first()
         
         if item_to_add is None:
-            print "i['ASIN'] doesn't exist, creating it"
+            print i['ASIN'] + "doesn't exist, creating it"
             item_to_add = Item(ASIN=i['ASIN'])
             item_to_add.name = i['ASIN'] + ' : Temp Name'
 
@@ -88,10 +88,10 @@ def add_variations_to_db(variations):
             db.session.commit()
 
 
-def refresh_all_item_data(items, amazon=None):
+def refresh_all_item_data(items, amazon_api=None):
     
-    if amazon is None:
-        amazon = get_amazon()
+    if amazon_api is None:
+        amazon_api = get_amazon()
 
     print 'starting items'
     for i in items:
@@ -99,7 +99,7 @@ def refresh_all_item_data(items, amazon=None):
         # get parent ASIN
         ASIN = i.ASIN
         print 'getting parent'
-        item_parent_ASIN = get_parent_ASIN(ASIN=ASIN, amazon=amazon)
+        item_parent_ASIN = get_parent_ASIN(ASIN=ASIN, amazon_api=amazon_api)
         print 'got parent'
 
         # if this parent doesn't exist, create it
@@ -114,7 +114,7 @@ def refresh_all_item_data(items, amazon=None):
 
         # get other item attribs
         print 'getting attribs'
-        item_attributes = get_item_attributes(ASIN, amazon=amazon)
+        item_attributes = get_item_attributes(ASIN, amazon_api=amazon_api)
 
         if item_attributes is not None:
             # using .get() here because it will default to None is the key is
@@ -131,7 +131,7 @@ def refresh_all_item_data(items, amazon=None):
             print 'got attribs for  ' + ASIN
 
         # get images
-        item_images = get_images(ASIN=ASIN, amazon=amazon)
+        item_images = get_images(ASIN=ASIN, amazon_api=amazon_api)
 
         # if we got images back, remove the old ones
         if item_images is not None:
@@ -158,7 +158,7 @@ def refresh_all_item_data(items, amazon=None):
                                    largeWidth      = image_sizes['largeWidth'],
                                    item_id         = i.id)
 
-        variations = get_variations(ASIN=ASIN, amazon=amazon)
+        variations = get_variations(ASIN=ASIN, amazon_api=amazon_api)
 
         add_variations_to_db(variations)
 
@@ -168,7 +168,7 @@ def refresh_all_item_data(items, amazon=None):
 
 def main():
 
-    amazon = get_amazon()
+    amazon_api = get_amazon_api()
 
     # pull all existing wishlists
     wishlists = Wishlist.query.all()
@@ -189,8 +189,7 @@ def main():
 
     items = Item.query.all()
 
-    for i in items:
-        refresh_item_data(item=i, amazon=amazon)
+    refresh_all_item_data(items=items, amazon_api=amazon_api)
 
 
     
