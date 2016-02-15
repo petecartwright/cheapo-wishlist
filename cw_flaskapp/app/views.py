@@ -27,6 +27,8 @@ def load_user(user_id):
     return User.query.get(int(user_id))
 
 
+## TODO - this needs to be an endpoint
+
 def is_usable_wishlist(wishlist_id):
     ''' Take an amazon wishlist ID, return a True if it's usable. False otherwise
 
@@ -36,7 +38,6 @@ def is_usable_wishlist(wishlist_id):
     wishlistURL = 'http://www.amazon.com/gp/registry/wishlist/' + wishlist_id
     r = requests.get(wishlistURL)
     wishlistFirstPage = BeautifulSoup(r.content, "html.parser")
-
 
     if (w.is_empty_wishlist(wishlistFirstPage) or
         w.is_invalid_wishlist(wishlistFirstPage) or
@@ -134,23 +135,25 @@ def wishlist(wishlist_id):
 @login_required
 def wishlist_add():
 
-    form = WishlistForm
+    form = WishlistForm()
     if request.method == 'GET':
+        print 'in get wishlist/add'
         return render_template('wishlist_add.html', 
                                form=form)
 
     if form.validate_on_submit():
         
-        wishlist_id = form.wishlist_id.data
+        wishlist_id = form.wishlistID.data
+
         # make sure we have a wishlist ID
-        if wishlist_id is None:
+        if wishlist_id is None or wishlist_id.strip() == '':
             flash('No wishlist ID provided')
-            redirect(url_for('wishlist_add'))
+            return redirect(url_for('wishlist_add'))
 
         # make sure this is a real wishlist ID 
         if not is_usable_wishlist(wishlist_id):
             flash("That's not a valid wishlist ID - check again!")
-            redirect(url_for('wishlist_add'))
+            return redirect(url_for('wishlist_add'))
 
         # get current user
         u = User.query.filter_by(id=current_user.id).first()
@@ -167,8 +170,7 @@ def wishlist_add():
         new_wishlist = Wishlist(amazonWishlistID=wishlist_id)
 
         # get wishlist name from the Amazon page
-        ## TODO - find the code for this
-        # new_wishlist.name = get_wishlist_name(wishlist_id)
+        new_wishlist.name = get_wishlist_name(wishlist_id)
 
         db.session.add(new_wishlist)
         db.session.commit()
@@ -179,7 +181,8 @@ def wishlist_add():
         db.session.commit()
 
         flash('Wishlist added!')
-        return redirect(url_for('wishlist'))
+        return redirect(url_for('wishlist_add'))
+
 
 
 @app.route('/user/<user_id>')
