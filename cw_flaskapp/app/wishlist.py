@@ -53,11 +53,14 @@ def get_wishlist_name(wishlistID):
     """
     print 'getting wishlist name for ' + str(wishlistID)
     r = requests.get(BASE_URL+'/'+wishlistID)
-    wishListPage = BeautifulSoup(r.content, "html.parser")
+    wishlistPage = BeautifulSoup(r.content, "html.parser")
 
-    name = wishListPage.find(class_="a-size-extra-large stable clip-text").text.strip()
-
-    return name
+    try:
+        name = wishlistPage.find(id="wl-list-info").find('h1').text.strip()
+        print 'found name - ' + str(name)
+        return name
+    except:
+        return 'no name found'
 
 
 def get_items_from_wishlist_page(wishlistID, pageNumber):
