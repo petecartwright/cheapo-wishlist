@@ -124,7 +124,7 @@ def refresh_all_item_data(items, amazon_api=None):
             i.product_group = item_attributes.get('product_group')
             i.name = item_attributes.get('title')
             i.URL = item_attributes.get('URL')
-            i.date_last_checked = datetime.date.today().strftime('%Y-%m-%d')    # today's date as YYYY-MM-DD
+            i.date_last_checked = datetime.date(datetime.today())
 
             db.session.add(i)
             db.session.commit()
