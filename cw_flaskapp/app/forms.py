@@ -11,7 +11,7 @@ class LoginForm(Form):
 
 class WishlistForm(Form):
     
-    wishlistID = StringField('wishlistID', validators=[DataRequired()])
+    wishlistID = StringField('wishlistID')
     
 
 class RegistrationForm(Form):
