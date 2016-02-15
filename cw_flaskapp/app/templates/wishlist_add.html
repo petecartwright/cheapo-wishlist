@@ -1,3 +1,17 @@
 {% extends 'base.html' %}
 
 
+{% block content %}
+    <span class='h1'>Add a Wishlist</span>
+
+    {% block messages %}
+      {{ super() }}
+    {% endblock %}
+
+
+    <form method="POST" action="">
+        {{ form.hidden_tag() }}
+        {{ form.wishlistID.label }} {{ form.wishlistID(size=20) }}<br />
+        <input type="submit" value="Add Wishlist">
+    </form>
+{% endblock %}
