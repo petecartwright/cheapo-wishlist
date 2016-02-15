@@ -1,6 +1,6 @@
 from app import db
-from app.models import Wishlist, Item, ParentItem, Image
-from app.amazon_api import get_parent_ASIN, get_item_attributes, get_amazon_api, get_images
+from app.models import Wishlist, Item, ParentItem, Image, Variation
+from app.amazon_api import get_parent_ASIN, get_item_attributes, get_amazon_api, get_images, get_item_variations_from_parent
 from app.wishlist import get_items_from_wishlist, get_wishlist_name
 from datetime import datetime
 
@@ -77,8 +77,11 @@ def get_image_sizes(item_image):
     return image_sizes
 
 
-def add_variations_to_db(variations):
-    for variation in variations:
+def add_variations_to_db(parentASIN, variations):
+    ''' take a parent ASIN and a list of variation ASINs, add to database
+    '''
+
+    for ASIN in variations:
         # check to see if variation exists
         v = Variation.query.filter_by(parent_ASIN=parent_ASIN).filter_by(ASIN=ASIN).first()
         if v is None:
@@ -86,6 +89,21 @@ def add_variations_to_db(variations):
                                       ASIN=ASIN)
             db.session.add(new_variation)
             db.session.commit()
+
+
+def get_variations(parent_ASIN, amazon_api=None):
+    ''' take an ASIN and amazon API object, get all ASINs for all variations for that items
+        if nothing is found, return an array with just that ASIN
+    '''
+    if amazon_api is None:
+        amazon_api = get_amazon()
+
+    parent_ASIN = get_parent_ASIN(ASIN=ASIN, amazon_api=amazon_api)
+    if parent_ASIN:
+        variations = get_item_variations_from_parent(ASIN=ASIN, amazon_api=amazon_api)
+        return variations
+    else:
+        return [ASIN]
 
 
 def refresh_all_item_data(items, amazon_api=None):
@@ -135,15 +153,15 @@ def refresh_all_item_data(items, amazon_api=None):
 
         # if we got images back, remove the old ones
         if item_images is not None:
-            current_images = i.images
-            for image in images:
+            current_images = i.images.all()
+            for image in current_images:
                 db.delete(i)
                 db.commit()
 
-        for item_image in item_images:
+        for image in item_images:
             # I wish I could trust the Amazon API to give me good data. 
             # but I can't.
-            image_sizes = get_image_sizes(item_image)
+            image_sizes = get_image_sizes(item_images[image])
             new_item_image = Image(# thumbnailURL    = item_image["ThumbnailImage"]["URL"],
                                    # thumbnailHeight = item_image["ThumbnailImage"]["Height"],
                                    # thumbnailWidth  = ite m_image["ThumbnailImage"]["Width"],
@@ -158,9 +176,10 @@ def refresh_all_item_data(items, amazon_api=None):
                                    largeWidth      = image_sizes['largeWidth'],
                                    item_id         = i.id)
 
-        variations = get_variations(ASIN=ASIN, amazon_api=amazon_api)
+        variations = get_variations(parent_ASIN=item_parent_ASIN, amazon_api=amazon_api)
+        variations.append(ASIN)
 
-        add_variations_to_db(variations)
+        add_variations_to_db(item_parent_ASIN, variations)
 
         
 
