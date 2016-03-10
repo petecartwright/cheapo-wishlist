@@ -83,10 +83,10 @@ def add_variations_to_db(parentASIN, variations):
 
     for ASIN in variations:
         # check to see if variation exists
-        v = Variation.query.filter_by(parent_ASIN=parent_ASIN).filter_by(ASIN=ASIN).first()
+        v = Variation.query.filter_by(parent_ASIN=parentASIN).filter_by(ASIN=ASIN).first()
         if v is None:
-            new_variation = Variation(parent_ASIN=parent_ASIN, 
-                                      ASIN=ASIN)
+            new_variation = Variation(parent_ASIN=parentASIN, 
+                                      ASIN=v)
             db.session.add(new_variation)
             db.session.commit()
 
@@ -98,12 +98,12 @@ def get_variations(parent_ASIN, amazon_api=None):
     if amazon_api is None:
         amazon_api = get_amazon()
 
-    parent_ASIN = get_parent_ASIN(ASIN=ASIN, amazon_api=amazon_api)
-    if parent_ASIN:
-        variations = get_item_variations_from_parent(ASIN=ASIN, amazon_api=amazon_api)
+    parentASIN = get_parent_ASIN(ASIN=parent_ASIN, amazon_api=amazon_api)
+    if parentASIN:
+        variations = get_item_variations_from_parent(parentASIN=parentASIN, amazon_api=amazon_api)
         return variations
     else:
-        return [ASIN]
+        return [parentASIN]
 
 
 def refresh_all_item_data(items, amazon_api=None):
@@ -134,7 +134,7 @@ def refresh_all_item_data(items, amazon_api=None):
         print 'getting attribs'
         item_attributes = get_item_attributes(ASIN, amazon_api=amazon_api)
 
-        if item_attributes is not None:
+        if item_attributes != {}:
             # using .get() here because it will default to None is the key is
             # not in the dict, and the API is not reliable about sending everything back
             i.list_price_amount = item_attributes.get('listPriceAmount')
@@ -158,23 +158,21 @@ def refresh_all_item_data(items, amazon_api=None):
                 db.delete(i)
                 db.commit()
 
-        for image in item_images:
-            # I wish I could trust the Amazon API to give me good data. 
-            # but I can't.
-            image_sizes = get_image_sizes(item_images[image])
-            new_item_image = Image(# thumbnailURL    = item_image["ThumbnailImage"]["URL"],
-                                   # thumbnailHeight = item_image["ThumbnailImage"]["Height"],
-                                   # thumbnailWidth  = ite m_image["ThumbnailImage"]["Width"],
-                                   smallURL        = image_sizes['smallURL'],
-                                   smallHeight     = image_sizes['smallHeight'],
-                                   smallWidth      = image_sizes['smallWidth'],
-                                   mediumURL       = image_sizes['mediumURL'],
-                                   mediumHeight    = image_sizes['mediumHeight'],
-                                   mediumWidth     = image_sizes['mediumWidth'],
-                                   largeURL        = image_sizes['largeURL'],
-                                   largeHeight     = image_sizes['largeHeight'],
-                                   largeWidth      = image_sizes['largeWidth'],
-                                   item_id         = i.id)
+        image_sizes = get_image_sizes(item_images[image])
+        new_item_image = Image(# thumbnailURL    = item_image["ThumbnailImage"]["URL"],
+                               # thumbnailHeight = item_image["ThumbnailImage"]["Height"],
+                               # thumbnailWidth  = ite m_image["ThumbnailImage"]["Width"],
+                               smallURL        = str(image_sizes['smallURL']),
+                               smallHeight     = int(image_sizes['smallHeight']),
+                               smallWidth      = int(image_sizes['smallWidth']),
+                               mediumURL       = str(image_sizes['mediumURL']),
+                               mediumHeight    = int(image_sizes['mediumHeight']),
+                               mediumWidth     = int(image_sizes['mediumWidth']),
+                               largeURL        = str(image_sizes['largeURL']),
+                               largeHeight     = int(image_sizes['largeHeight']),
+                               largeWidth      = int(image_sizes['largeWidth']),
+                               item_id         = i.id)
+        db.session.add(new_item_image)
 
         variations = get_variations(parent_ASIN=item_parent_ASIN, amazon_api=amazon_api)
         variations.append(ASIN)
