@@ -148,7 +148,8 @@ def refresh_all_item_data(items, amazon_api=None):
             db.session.commit()
             print 'got attribs for  ' + ASIN
 
-        # get images
+        # get the main image for the item
+        ## TODO: there are multiple images for each prod, it would be nice to get them all.
         item_images = get_images(ASIN=ASIN, amazon_api=amazon_api)
 
         # if we got images back, remove the old ones
