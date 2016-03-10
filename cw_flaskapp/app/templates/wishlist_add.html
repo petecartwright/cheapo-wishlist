@@ -12,6 +12,7 @@
     <form method="POST" action="">
         {{ form.hidden_tag() }}
         {{ form.wishlistID.label }} {{ form.wishlistID(size=20) }}<br />
+      {#  {{ form.wishlistName.label }} {{ form.wishlistName(size=20) }}<br /> #}
         <input type="submit" value="Add Wishlist">
     </form>
 {% endblock %}
