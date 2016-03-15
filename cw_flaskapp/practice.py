@@ -180,9 +180,6 @@ def refresh_all_item_data(items, amazon_api=None):
 
         add_variations_to_db(item_parent_ASIN, variations)
 
-        
-
-
 
 def main():
 

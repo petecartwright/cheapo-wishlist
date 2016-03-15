@@ -133,8 +133,6 @@ def get_item_variations_from_parent(parentASIN, amazon_api=None):
 
         try:
             variations = root.Items.Item.Variations
-            # I don't think non-book variations will have more than one page.
-            # Grabbed one shoe example (B00PVY92GS) that has 50+ variations retured
             for v in variations.iterchildren(tag='Item'):
                 varASIN = str(v.parentASIN).zfill(10)
                 variationASINs.append(varASIN)
