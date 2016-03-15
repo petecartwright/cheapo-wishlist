@@ -120,7 +120,6 @@ def get_item_variations_from_parent(parentASIN, amazon_api=None):
             variationASINs = [parentASIN]
 
     else:
-        amazon_api = bottlenose.Amazon(AMAZON_KEY_ID, AMAZON_SECRET_KEY, AMAZON_AFFILIATE_ID)
         response = clean_response(amazon_api.ItemLookup(ItemId=parentASIN,
                                                     ResponseGroup="Variations",
                                                     Condition='All' ))
