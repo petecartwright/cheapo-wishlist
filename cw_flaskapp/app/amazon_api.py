@@ -104,7 +104,7 @@ def get_item_variations_from_parent(parentASIN, amazon_api=None):
     # know how to handle this product
     product_group = get_product_group(ASIN=parentASIN, amazon_api=amazon_api)    
 
-    if product_group == 'Book':
+    if product_group in ('Book','Authority Non Buyable'):
         response = clean_response(amazon_api.ItemLookup(ItemId=parentASIN,
                                                     ResponseGroup="RelatedItems",
                                                     Condition='All',
