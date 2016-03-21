@@ -86,6 +86,11 @@ class Item(db.Model):
     images                  = db.relationship('Image', backref='item', lazy='dynamic')
     offers                  = db.relationship('Offer', backref='item', lazy='dynamic')
     parent_id               = db.Column(db.Integer, db.ForeignKey('parent_item.id'))
+
+    def __init__(self, ASIN, parent_item=None):
+        self.ASIN = ASIN
+        self.parent_item = parent_item
+
     def __repr__(self):
         return '<Item %r>' % (self.name)
 
