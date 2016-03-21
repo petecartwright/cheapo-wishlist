@@ -4,10 +4,29 @@ from amazonconfig import AMAZON_KEY_ID, AMAZON_SECRET_KEY, AMAZON_AFFILIATE_ID
 import urllib2
 from time import sleep
 import pprint
+import random
+import unicodedata
+
+
+
 
 # allow us to print lxml.objectify objects in a nice way
 # can pull this out in prod
 objectify.enable_recursive_str()
+
+
+def error_handler(err):
+    ex = err['exception']
+    if isinstance(ex, urllib2.HTTPError) and ex.code == 503:
+        print 'whoa ho ho, slow down a bit buckaroo'
+        sleep(random.expovariate(0.1))
+        return True
+
+
+def gracefully_degrade_to_ascii( text ):
+    ''' Make sure any text return can be handled by a Python string
+    '''
+    return unicodedata.normalize('NFKD',text).encode('ascii','ignore')
 
 
 def debug_print_lxml(to_print):
@@ -15,7 +34,7 @@ def debug_print_lxml(to_print):
         f.write(str(to_print))
 
 def get_amazon_api():
-    amazon_api = bottlenose.Amazon(AMAZON_KEY_ID, AMAZON_SECRET_KEY, AMAZON_AFFILIATE_ID, MaxQPS=0.9)
+    amazon_api = bottlenose.Amazon(AMAZON_KEY_ID, AMAZON_SECRET_KEY, AMAZON_AFFILIATE_ID, MaxQPS=0.9, ErrorHandler=error_handler)
     return amazon_api
 
 
@@ -205,19 +224,29 @@ def get_images(ASIN, amazon_api=None):
 
     item = root.Items.Item
 
-    images = {"SmallImage": {"URL": item.SmallImage.URL,
-                             "Height": item.SmallImage.Height,
-                             "Width": item.SmallImage.Width
-                             },
-              "MediumImage": {"URL": item.MediumImage.URL,
-                             "Height": item.MediumImage.Height,
-                             "Width": item.MediumImage.Width
-                             },
-              "LargeImage": {"URL": item.LargeImage.URL,
-                             "Height": item.LargeImage.Height,
-                             "Width": item.LargeImage.Width
-                             }
-             }
+    smallImage = hasattr(item, 'SmallImage')
+    mediumImage = hasattr(item,'MediumImage')
+    largeImage = hasattr(item,'LargeImage')
+
+    # don't always get all three images, so populate what we have
+    ## TODO: combine this code with the get_images_sizes() method
+    images = {}
+
+    if smallImage:
+        images['SmallImage'] = {"URL": item.SmallImage.URL,
+                                "Height": item.SmallImage.Height,
+                                "Width": item.SmallImage.Width
+                               }
+    if mediumImage:
+        images['MediumImage'] = {"URL": item.MediumImage.URL,
+                                 "Height": item.MediumImage.Height,
+                                 "Width": item.MediumImage.Width
+                                }
+    if largeImage:
+        images['MediumImage'] = {"URL": item.LargeImage.URL,
+                                 "Height": item.LargeImage.Height,
+                                 "Width": item.LargeImage.Width
+                                 }
 
     return images
 
@@ -251,6 +280,7 @@ def get_item_attributes(ASIN, amazon_api=None):
 
     # check for an error element, return {} 
     if hasattr(root.Items.Request, 'Errors'):
+        ## TODO: This needs better error handling
         return {}
 
     item = root.Items.Item
@@ -267,7 +297,7 @@ def get_item_attributes(ASIN, amazon_api=None):
         listPriceAmount = str(item.ItemAttributes.ListPrice.Amount)
         listPriceFormatted = str(item.ItemAttributes.ListPrice.FormattedPrice)
     if hasattr(item.ItemAttributes, 'Title'):
-        title = str(item.ItemAttributes.Title)
+        title = str(item.ItemAttributes.Title.text.encode('ascii',errors='ignore')) # had some titles with non-breaking spaces in them. Annoying.
     if hasattr(item.ItemAttributes, 'ProductGroup'):
         product_group = str(item.ItemAttributes.ProductGroup)
 
