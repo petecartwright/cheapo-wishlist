@@ -4,10 +4,29 @@ from amazonconfig import AMAZON_KEY_ID, AMAZON_SECRET_KEY, AMAZON_AFFILIATE_ID
 import urllib2
 from time import sleep
 import pprint
+import random
+import unicodedata
+
+
+
 
 # allow us to print lxml.objectify objects in a nice way
 # can pull this out in prod
 objectify.enable_recursive_str()
+
+
+def error_handler(err):
+    ex = err['exception']
+    if isinstance(ex, urllib2.HTTPError) and ex.code == 503:
+        print 'whoa ho ho, slow down a bit buckaroo'
+        sleep(random.expovariate(0.1))
+        return True
+
+
+def gracefully_degrade_to_ascii( text ):
+    ''' Make sure any text return can be handled by a Python string
+    '''
+    return unicodedata.normalize('NFKD',text).encode('ascii','ignore')
 
 
 def debug_print_lxml(to_print):
@@ -15,8 +34,8 @@ def debug_print_lxml(to_print):
         f.write(str(to_print))
 
 def get_amazon_api():
-    amazon_api = bottlenose.Amazon(AMAZON_KEY_ID, AMAZON_SECRET_KEY, AMAZON_AFFILIATE_ID, MaxQPS=0.9)
-    return amazon
+    amazon_api = bottlenose.Amazon(AMAZON_KEY_ID, AMAZON_SECRET_KEY, AMAZON_AFFILIATE_ID, MaxQPS=0.9, ErrorHandler=error_handler)
+    return amazon_api
 
 
 def clean_response(response):
@@ -47,9 +66,11 @@ def get_parent_ASIN(ASIN, amazon_api=None):
     if product_group == 'Book':
         response = clean_response(amazon_api.ItemLookup(ItemId=ASIN, ResponseGroup="RelatedItems,ItemAttributes", Condition='All', RelationshipType='AuthorityTitle'))
         item = objectify.fromstring(response)
-
-        if item.Items.Item.RelatedItems.RelatedItem.Item.ItemAttributes.ProductGroup == 'Authority Non Buyable':
-            parent_ASIN = item.Items.Item.RelatedItems.RelatedItem.Item.ASIN
+        if hasattr(item.Items.Item, 'RelatedItems'):
+            if item.Items.Item.RelatedItems.RelatedItem.Item.ItemAttributes.ProductGroup == 'Authority Non Buyable':
+                parent_ASIN = item.Items.Item.RelatedItems.RelatedItem.Item.ASIN
+            else:
+                parent_ASIN = ASIN
         else:
             parent_ASIN = ASIN
     else:
@@ -91,7 +112,7 @@ def get_book_variations_from_page(ASIN, amazon_api=None, page_number=1):
     return variations_on_page
 
 
-def get_item_variations_from_parent(ASIN, amazon_api=None):
+def get_item_variations_from_parent(parentASIN, amazon_api=None):
     ''' take an amazon "parent" ASIN
         returns a list of item variation ASINs
     '''
@@ -100,23 +121,25 @@ def get_item_variations_from_parent(ASIN, amazon_api=None):
 
     # different product types handle related items differently, so we need to
     # know how to handle this product
-    product_group = get_product_group(ASIN=ASIN, amazon_api=amazon_api)    
+    product_group = get_product_group(ASIN=parentASIN, amazon_api=amazon_api)    
 
-    if product_group == 'Book':
-        response = clean_response(amazon_api.ItemLookup(ItemId=ASIN,
+    if product_group in ('Book','Authority Non Buyable'):
+        response = clean_response(amazon_api.ItemLookup(ItemId=parentASIN,
                                                     ResponseGroup="RelatedItems",
                                                     Condition='All',
                                                     RelationshipType='AuthorityTitle'))
         root = objectify.fromstring(response)
-        relatedItems = root.Items.Item.RelatedItems
-        numberOfPages = relatedItems.RelatedItemPageCount
-        variationASINs= []
-        for i in range(1,numberOfPages+1):
-            variationASINs.extend(get_book_variations_from_page(ASIN=ASIN, page_number=i))
+        if hasattr(root.Items.Item, 'RelatedItems'):
+            relatedItems = root.Items.Item.RelatedItems
+            numberOfPages = relatedItems.RelatedItemPageCount
+            variationASINs= []
+            for i in range(1,numberOfPages+1):
+                variationASINs.extend(get_book_variations_from_page(ASIN=parentASIN, page_number=i))
+        else:
+            variationASINs = [parentASIN]
 
     else:
-        amazon_api = bottlenose.Amazon(AMAZON_KEY_ID, AMAZON_SECRET_KEY, AMAZON_AFFILIATE_ID)
-        response = clean_response(amazon_api.ItemLookup(ItemId=ASIN,
+        response = clean_response(amazon_api.ItemLookup(ItemId=parentASIN,
                                                     ResponseGroup="Variations",
                                                     Condition='All' ))
         root = objectify.fromstring(response)
@@ -129,13 +152,11 @@ def get_item_variations_from_parent(ASIN, amazon_api=None):
 
         try:
             variations = root.Items.Item.Variations
-            # I don't think non-book variations will have more than one page.
-            # Grabbed one shoe example (B00PVY92GS) that has 50+ variations retured
             for v in variations.iterchildren(tag='Item'):
-                varASIN = str(v.ASIN).zfill(10)
+                varASIN = str(v.parentASIN).zfill(10)
                 variationASINs.append(varASIN)
         except:
-            variationASINs = [ASIN]
+            variationASINs = [parentASIN]
 
     return variationASINs
 
@@ -184,6 +205,7 @@ def get_offers(ASIN, amazon_api=None):
 def get_images(ASIN, amazon_api=None):
     ''' take an ASIN
         return a dict with the Small, Medium, and Large image URLS and dimensions
+        if there's an error, return an empty dict
     '''
     if amazon_api is None:  
         amazon_api = get_amazon_api()
@@ -192,24 +214,39 @@ def get_images(ASIN, amazon_api=None):
         response = clean_response(amazon_api.ItemLookup(ItemId=ASIN, ResponseGroup="Images", Condition='All' ))
     except Error, err:
         print err
+        return {}
 
     root = objectify.fromstring(response)
 
+    # check for an error element, return {} 
+    if hasattr(root.Items.Request, 'Errors'):
+        return {}
+
     item = root.Items.Item
 
-    images = {"SmallImage": {"URL": item.SmallImage.URL,
-                             "Height": item.SmallImage.Height,
-                             "Width": item.SmallImage.Width
-                             },
-              "MediumImage": {"URL": item.MediumImage.URL,
-                             "Height": item.MediumImage.Height,
-                             "Width": item.MediumImage.Width
-                             },
-              "LargeImage": {"URL": item.LargeImage.URL,
-                             "Height": item.LargeImage.Height,
-                             "Width": item.LargeImage.Width
-                             }
-             }
+    smallImage = hasattr(item, 'SmallImage')
+    mediumImage = hasattr(item,'MediumImage')
+    largeImage = hasattr(item,'LargeImage')
+
+    # don't always get all three images, so populate what we have
+    ## TODO: combine this code with the get_images_sizes() method
+    images = {}
+
+    if smallImage:
+        images['SmallImage'] = {"URL": item.SmallImage.URL,
+                                "Height": item.SmallImage.Height,
+                                "Width": item.SmallImage.Width
+                               }
+    if mediumImage:
+        images['MediumImage'] = {"URL": item.MediumImage.URL,
+                                 "Height": item.MediumImage.Height,
+                                 "Width": item.MediumImage.Width
+                                }
+    if largeImage:
+        images['MediumImage'] = {"URL": item.LargeImage.URL,
+                                 "Height": item.LargeImage.Height,
+                                 "Width": item.LargeImage.Width
+                                 }
 
     return images
 
@@ -231,12 +268,20 @@ def check_for_valid_ASIN(ASIN, amazon_api=None):
 
 
 def get_item_attributes(ASIN, amazon_api=None):
+    ''' take an ASIN and a amazon API instance, return a dictionary of the item's attributes
+        if there's an error (some items can't be gotten through the API), return an empty dict
+    '''
 
     if amazon_api is None:
         amazon_api = get_amazon_api()
 
     response = clean_response(amazon_api.ItemLookup(ItemId=ASIN, ResponseGroup="ItemAttributes"))
     root = objectify.fromstring(response)
+
+    # check for an error element, return {} 
+    if hasattr(root.Items.Request, 'Errors'):
+        ## TODO: This needs better error handling
+        return {}
 
     item = root.Items.Item
 
@@ -252,7 +297,7 @@ def get_item_attributes(ASIN, amazon_api=None):
         listPriceAmount = str(item.ItemAttributes.ListPrice.Amount)
         listPriceFormatted = str(item.ItemAttributes.ListPrice.FormattedPrice)
     if hasattr(item.ItemAttributes, 'Title'):
-        title = str(item.ItemAttributes.Title)
+        title = str(item.ItemAttributes.Title.text.encode('ascii',errors='ignore')) # had some titles with non-breaking spaces in them. Annoying.
     if hasattr(item.ItemAttributes, 'ProductGroup'):
         product_group = str(item.ItemAttributes.ProductGroup)
 
