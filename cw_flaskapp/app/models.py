@@ -120,6 +120,7 @@ class Offer(db.Model):
     condition               = db.Column(db.String(200))
     offer_price_amount      = db.Column(db.Integer)
     offer_price_formatted   = db.Column(db.String(40))
+    prime_eligible          = db.Column(db.Boolean)
     item_id                 = db.Column(db.Integer, db.ForeignKey('item.id'))
     
     def __repr__(self):
