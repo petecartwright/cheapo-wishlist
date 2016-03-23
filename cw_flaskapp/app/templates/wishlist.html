@@ -1,3 +1,16 @@
 {% extends 'base.html' %}
 
 
+{% block content %}
+{{ super() }}
+
+{{ wishlist }}
+<br/>
+------------------------------
+<br/>
+{{ items }}
+<br/>
+------------------------------
+<br/>
+{{ variations }}
+{% endblock %}

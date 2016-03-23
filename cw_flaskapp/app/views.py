@@ -126,10 +126,19 @@ def index():
 def wishlist(wishlist_id):
     ## todo - it would be nice if this handled both internal wishlist IDs (autoincrementint ints) and amazon wishlist IDs
     wishlist = Wishlist.query.filter_by(id=wishlist_id).first()
+    items = wishlist.items
+    variations = []
+    for i in items:
+        variations.extend(i.parent_item.items)
+    
     if wishlist == None:
         return 'No wishlist with ID ' + str(wishlist_id) +'.'
     else:
-        return 'there is a wishlist with ID ' + str(wishlist_id) +'.'
+        return render_template('wishlist.html', 
+                                wishlist=wishlist,
+                                items=items,
+                                variations=variations
+                                )
         
 
 @app.route('/wishlist/add', methods=['GET','POST'])
