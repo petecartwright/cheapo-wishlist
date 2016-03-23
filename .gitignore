@@ -78,3 +78,5 @@ wishlist.db
 wishlist_old.py
 
 cw_flaskapp/wlp.html
+
+cw_flaskapp/app.db-journal
