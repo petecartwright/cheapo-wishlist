@@ -1,6 +1,6 @@
 from flask import Flask
-from flask.ext.sqlalchemy import SQLAlchemy
-from flask.ext.login import LoginManager
+from flask_sqlalchemy import SQLAlchemy
+from flask_login import LoginManager
 from flask_bootstrap import Bootstrap
 from celery import Celery
 
@@ -16,7 +16,7 @@ bootstrap = Bootstrap(app)
 # let flask-login handle all the login stuff
 lm = LoginManager(app)
 lm.login_view = 'login'
-lm .login_message = "You need to be logged in to see that page!"
+lm.login_message = "You need to be logged in to see that page!"
 
 # set up Celery to handle task queues
 app.config['CELERY_BROKER_URL'] = 'redis://'
