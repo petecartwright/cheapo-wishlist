@@ -179,25 +179,69 @@ def get_product_group(ASIN, amazon_api=None):
         return product_group
 
 
-def get_offers(ASIN, amazon_api=None):
-    ''' take an ASIN
-        return a list of all best-price offers with price, condition, and prime status
+def get_offers(item, amazon_api=None):
+    ''' take an item
+        get all offers, return a list of dicts of offer info
     '''
     if amazon_api is None:  
         amazon_api = get_amazon_api()
 
-    response = clean_response(amazon_api.ItemLookup(ItemId=ASIN, ResponseGroup="Offers", Condition='All' ))
-    root = objectify.fromstring(response)
-
-    offerList = root.Items.Item.Offers.iterchildren(tag='Offer')
-
+    ASIN = item.ASIN
+    item_id = item.id
+    
     offers = []
-    for offer in offerList:
-        offers.append({"Condition":offer.OfferAttributes.Condition,
-                       "PriceAmount":offer.OfferListing.Price.Amount,
-                       "FormattedPrice":offer.OfferListing.Price.FormattedPrice,
-                       "PrimeEligibility":offer.OfferListing.IsEligibleForPrime
-                       })
+
+    # first get the main offer - this is the one that "won the Buy Box"
+
+    buybox_response = clean_response(amazon_api.ItemLookup(ItemId=ASIN, ResponseGroup="OfferListings"))
+    buybox_root = objectify.fromstring(buybox_response)
+    if buybox_root.Items.Item.Offers.TotalOffers != 0:
+        buybox_condition = buybox_root.Items.Item.Offers.Offer.OfferAttributes.Condition
+        buybox_price_amount = buybox_root.Items.Item.Offers.Offer.OfferListing.Price.Amount
+        buybox_price_formatted = buybox_root.Items.Item.Offers.Offer.OfferListing.Price.FormattedPrice
+        buybox_availability = buybox_root.Items.Item.Offers.Offer.OfferListing.Availability
+        if buybox_root.Items.Item.Offers.Offer.OfferListing.IsEligibleForPrime == 1: 
+            buybox_prime_eligible = True
+        else:
+            buybox_prime_eligible = False
+
+        offers.append({'condition': buybox_condition,
+                    'offer_price_amount': buybox_price_amount,
+                    'offer_price_formatted': buybox_price_formatted,
+                    'prime_eligible': buybox_prime_eligible,
+                    'availability': buybox_availability, 
+                    'item_id': item_id
+                    })
+    else:
+        print 'No buybox for ASIN {0}, name {1}'.format(item.ASIN, item.name)
+
+
+    # then get the best third-party offers
+
+    tp_response = clean_response(amazon_api.ItemLookup(ItemId=ASIN, ResponseGroup="Offers", Condition='All' ))
+    tp_root = objectify.fromstring(tp_response)
+
+    offerList = tp_root.Items.Item.Offers.iterchildren(tag='Offer')
+    
+    for o in offerList:
+        condition = o.OfferAttributes.Condition
+        offer_price_amount = o.OfferListing.Price.Amount
+        offer_price_formatted = o.OfferListing.Price.FormattedPrice
+        if o.OfferListing.IsEligibleForPrime == 1: 
+            prime_eligible = True
+        else:
+            prime_eligible = False
+        availability = o.OfferListing.Availability
+        
+
+        offer = {'condition': condition,
+                'offer_price_amount': offer_price_amount,
+                'offer_price_formatted': offer_price_formatted,
+                'prime_eligible': prime_eligible,
+                'availability': availability, 
+                'item_id': item_id
+                }
+        offers.append(offer)
 
     return offers
 

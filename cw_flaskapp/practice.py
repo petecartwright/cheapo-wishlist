@@ -1,6 +1,6 @@
 from app import db
-from app.models import Wishlist, Item, ParentItem, Image, Variation
-from app.amazon_api import get_parent_ASIN, get_item_attributes, get_amazon_api, get_images, get_item_variations_from_parent
+from app.models import Wishlist, Item, ParentItem, Image, Variation, Offer
+from app.amazon_api import get_parent_ASIN, get_item_attributes, get_amazon_api, get_images, get_item_variations_from_parent, get_offers
 from app.wishlist import get_items_from_wishlist, get_wishlist_name
 from datetime import datetime
 
@@ -113,14 +113,12 @@ def refresh_item_data(item, amazon_api=None):
         TODO - literally any error handling
     '''
 
-
     if amazon_api is None:
         amazon_api = get_amazon()
 
-
-    print 'on ' + i.ASIN
+    print 'on ' + item.ASIN
     
-    ASIN = i.ASIN
+    ASIN = item.ASIN
     
     # get other item attribs
     print 'getting attributes'
@@ -129,16 +127,17 @@ def refresh_item_data(item, amazon_api=None):
     if item_attributes == {}:
         return False
 
+
     # using .get() here because it will default to None is the key is
     # not in the dict, and the API is not reliable about sending everything back
-    i.list_price_amount = item_attributes.get('listPriceAmount')
-    i.list_price_formatted = item_attributes.get('listPriceFormatted')
-    i.product_group = item_attributes.get('product_group')
-    i.name = item_attributes.get('title')
-    i.URL = item_attributes.get('URL')
-    i.date_last_checked = datetime.date(datetime.today())
+    item.list_price_amount = item_attributes.get('listPriceAmount')
+    item.list_price_formatted = item_attributes.get('listPriceFormatted')
+    item.product_group = item_attributes.get('product_group')
+    item.name = item_attributes.get('title')
+    item.URL = item_attributes.get('URL')
+    item.date_last_checked = datetime.date(datetime.today())
 
-    db.session.add(i)
+    db.session.add(item)
     db.session.commit()
     print 'got attribs for  ' + ASIN
 
@@ -163,7 +162,7 @@ def refresh_item_data(item, amazon_api=None):
                            largeURL        = str(image_sizes['largeURL']),
                            largeHeight     = int(image_sizes['largeHeight'] or 0),
                            largeWidth      = int(image_sizes['largeWidth'] or 0),
-                           item_id         = i.id)
+                           item_id         = item.id)
     db.session.add(new_item_image)
 
     return True
@@ -177,69 +176,88 @@ def main():
     # pull all existing wishlists
     wishlists = Wishlist.query.all()
 
-    for w in wishlists:
-        # get all of the items from the withlist
-        # make sure we have an updated name for the wishlist
-        wishlist_name = get_wishlist_name(w.amazonWishlistID)
-        if wishlist_name is not None:
-            w.name = wishlist_name
-            db.session.add(w)
-            db.session.commit()
-        wishlist_items = get_items_from_wishlist(w.amazonWishlistID)
-        # add all of the wishlist items to the database
-        add_wishlist_items_to_db(wishlist=w, wishlist_items=wishlist_items)
+    # for w in wishlists:
+    #     # get all of the items from the withlist
+    #     # make sure we have an updated name for the wishlist
+    #     wishlist_name = get_wishlist_name(w.amazonWishlistID)
+    #     if wishlist_name is not None:
+    #         w.name = wishlist_name
+    #         db.session.add(w)
+    #         db.session.commit()
+    #     wishlist_items = get_items_from_wishlist(w.amazonWishlistID)
+    #     # add all of the wishlist items to the database
+    #     add_wishlist_items_to_db(wishlist=w, wishlist_items=wishlist_items)
 
-    # now that all of the base items are in the wishlist, get all of the parent items
-    all_items = Item.query.all()
-    for i in all_items:
-        print 'getting parent'
-        item_parent_ASIN = get_parent_ASIN(ASIN=i.ASIN, amazon_api=amazon_api)
-        print 'got parent'
-        # if this parent doesn't exist, create it
-        parent = ParentItem.query.filter_by(parent_ASIN=item_parent_ASIN).first()
-        if parent is None:
-            print "parent doesn't exist, creating"
-            parent = ParentItem(parent_ASIN=item_parent_ASIN)
-            db.session.add(parent)
-            db.session.commit()
-        # add the parent to the item
-        i.parent_item = parent
-        db.session.add(i)
-        db.session.commit()     
+    # # now that all of the base items are in the wishlist, get all of the parent items
+    # all_items = Item.query.all()
+    # for i in all_items:
+    #     print 'getting parent for {0}'.format(i.ASIN)
+    #     item_parent_ASIN = get_parent_ASIN(ASIN=i.ASIN, amazon_api=amazon_api)
+    #     print 'got parent'
+    #     # if this parent doesn't exist, create it
+    #     parent = ParentItem.query.filter_by(parent_ASIN=item_parent_ASIN).first()
+    #     if parent is None:
+    #         print "parent doesn't exist, creating"
+    #         parent = ParentItem(parent_ASIN=item_parent_ASIN)
+    #         db.session.add(parent)
+    #         db.session.commit()
+    #     # add the parent to the item
+    #     i.parent_item = parent
+    #     db.session.add(i)
+    #     db.session.commit()     
 
-    # from that list of parents, get all variations
-    all_parents = ParentItem.query.all()
-    for p in all_parents:
-        # get a list of all ASINS under that parent
-        print 'getting variations for {0}'.format(p.parent_ASIN)
-        variations = get_variations(parent_ASIN=p.parent_ASIN, amazon_api=amazon_api)
-        print 'Found {0} variations for {1}'.format(len(variations), p.parent_ASIN)
-        for v in variations:
-            print 'Checking for existence of variation {0}'.format(v)
-            var = Item.query.filter_by(ASIN=v).all()
-            if len(var) == 0:
-                print 'Don''t have this one, adding.'
-                # if we don't have these variations already, add them to the database
-                # with the correct parent
-                new_variation = Item(ASIN=v, parent_item=p)
-                db.session.add(new_variation)
-                db.session.commit()
-            else:
-                print 'Have it.'
+    # # from that list of parents, get all variations
+    # all_parents = ParentItem.query.all()
+    # for p in all_parents:
+    #     # get a list of all ASINS under that parent
+    #     print 'getting variations for {0}'.format(p.parent_ASIN)
+    #     variations = get_variations(parent_ASIN=p.parent_ASIN, amazon_api=amazon_api)
+    #     print 'Found {0} variations for {1}'.format(len(variations), p.parent_ASIN)
+    #     for v in variations:
+    #         print 'Checking for existence of variation {0}'.format(v)
+    #         var = Item.query.filter_by(ASIN=v).all()
+    #         if len(var) == 0:
+    #             print 'Don''t have this one, adding.'
+    #             # if we don't have these variations already, add them to the database
+    #             # with the correct parent
+    #             new_variation = Item(ASIN=v, parent_item=p)
+    #             db.session.add(new_variation)
+    #             db.session.commit()
+    #         else:
+    #             print 'Have it.'
 
-
-    
     ## Next step is to get the item data for everything in the database
 
-    # get all of the items again
+    # get attributes (name, price, URL, etc) for all items
+    # all all offers for each item
     all_items = Item.query.all()
     for i in all_items: 
         refresh_item_data(item=i, amazon_api=amazon_api)
-
-
-    
-
-
+        # cant' get info on some - looks like maybe weapons?
+        if i.name != None:
+            # get all of the available offers
+            # first remove existing offers from database
+            item_offers = i.offers.all()
+            for x in item_offers:
+                db.session.delete(x)
+                db.session.commit()
+            # can't get offers for Kindle Books    
+            if i.product_group == 'eBooks':
+                print "can't get offers for Kindle books"
+            else:
+                print 'getting offers for {0}'.format(i.ASIN)
+                offers = get_offers(item=i, amazon_api=amazon_api)
+                for o in offers:
+                    new_offer = Offer()
+                    new_offer.condition = str(o['condition'])
+                    new_offer.offer_price_amount = int(o['offer_price_amount'])
+                    new_offer.offer_price_formatted = str(o['offer_price_formatted'])
+                    new_offer.prime_eligible = o['prime_eligible']
+                    new_offer.availability = str(o['availability'])
+                    new_offer.item_id = o['item_id']
+                    db.session.add(new_offer)
+                    db.session.commit()
+ 
 
 
 
