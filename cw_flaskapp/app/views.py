@@ -27,7 +27,7 @@ def load_user(user_id):
     return User.query.get(int(user_id))
 
 
-## TODO - this needs to be an endpoint
+
 
 def is_usable_wishlist(wishlist_id):
     ''' Take an amazon wishlist ID, return a True if it's usable. False otherwise
@@ -35,6 +35,7 @@ def is_usable_wishlist(wishlist_id):
         ##TODO - this should have a proper error message in it. 
 
     '''
+    ## TODO - this needs to be an endpoint
     wishlistURL = 'http://www.amazon.com/gp/registry/wishlist/' + wishlist_id
     r = requests.get(wishlistURL)
     wishlistFirstPage = BeautifulSoup(r.content, "html.parser")
@@ -207,6 +208,23 @@ def user(user_id):
 
     return render_template('user.html', 
                            wishlists=wishlists)
+
+
+@app.route('/item/<item_id>')
+def item(item_id):
+    
+    item = Item.query.filter_by(id=int(item_id)).first()
+    variations = i.parent_item.items
+
+    # 404 if we don't have it
+    if item is None:
+        return render_template('404.html')
+
+    return render_template('item.html', 
+                            item=item,
+                            variations=variations)
+
+
 
 
 ################################################################################
