@@ -213,15 +213,25 @@ def user(user_id):
 
 @app.route('/item/<item_id>')
 def item(item_id):
+<<<<<<< HEAD
 
     item = Item.query.filter_by(id=int(item_id)).first()
     variations = item.parent_item.items
+=======
+    
+    item = Item.query.filter_by(id=int(item_id)).first()
+    variations = i.parent_item.items
+>>>>>>> master
 
     # 404 if we don't have it
     if item is None:
         return render_template('404.html')
 
+<<<<<<< HEAD
     return render_template('item.html',
+=======
+    return render_template('item.html', 
+>>>>>>> master
                             item=item,
                             variations=variations)
 
