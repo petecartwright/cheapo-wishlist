@@ -1,10 +1,12 @@
+import requests
+
 from app  import app, db, lm, celery
 from .models import Wishlist, User, UserSettings, ParentItem, Item
-from flask import render_template, request, url_for, redirect, g, session, flash, Markup, jsonify   
+from flask import render_template, request, url_for, redirect, g, session, flash, Markup, jsonify
 from flask.ext.login import login_user, logout_user, login_required, current_user
 from forms import LoginForm, WishlistForm, RegistrationForm
 import wishlist as w
-import requests
+
 from bs4 import BeautifulSoup
 
 
@@ -32,7 +34,7 @@ def load_user(user_id):
 def is_usable_wishlist(wishlist_id):
     ''' Take an amazon wishlist ID, return a True if it's usable. False otherwise
 
-        ##TODO - this should have a proper error message in it. 
+        ##TODO - this should have a proper error message in it.
 
     '''
     ## TODO - this needs to be an endpoint
@@ -43,7 +45,7 @@ def is_usable_wishlist(wishlist_id):
     if (w.is_empty_wishlist(wishlistFirstPage) or
         w.is_invalid_wishlist(wishlistFirstPage) or
         w.is_private_wishlist(wishlistFirstPage)
-        ):      
+        ):
         return False
     else:
         return True
@@ -77,7 +79,7 @@ def refresh_wishlist_on_demand_task(wishlist_id):
 #  http://blog.miguelgrinberg.com/post/using-celery-with-flask
 @app.route('/refreshstatus/<task_id>')
 def refreshstatus(task_id):
-    
+
     task = refresh_wishlist_on_demand_task.AsyncResult(task_id)
     print task
     if not task:
@@ -131,16 +133,16 @@ def wishlist(wishlist_id):
     variations = []
     for i in items:
         variations.extend(i.parent_item.items)
-    
+
     if wishlist == None:
         return 'No wishlist with ID ' + str(wishlist_id) +'.'
     else:
-        return render_template('wishlist.html', 
+        return render_template('wishlist.html',
                                 wishlist=wishlist,
                                 items=items,
                                 variations=variations
                                 )
-        
+
 
 @app.route('/wishlist/add', methods=['GET','POST'])
 @login_required
@@ -149,11 +151,11 @@ def wishlist_add():
     form = WishlistForm()
     if request.method == 'GET':
         print 'in get wishlist/add'
-        return render_template('wishlist_add.html', 
+        return render_template('wishlist_add.html',
                                form=form)
 
     if form.validate_on_submit():
-        
+
         wishlist_id = form.wishlistID.data
 
         # make sure we have a wishlist ID
@@ -161,7 +163,7 @@ def wishlist_add():
             flash('No wishlist ID provided')
             return redirect(url_for('wishlist_add'))
 
-        # make sure this is a real wishlist ID 
+        # make sure this is a real wishlist ID
         if not is_usable_wishlist(wishlist_id):
             flash("That's not a valid wishlist ID - check again!")
             return redirect(url_for('wishlist_add'))
@@ -170,8 +172,8 @@ def wishlist_add():
         u = User.query.filter_by(id=current_user.id).first()
         # check to see if wishlist is already in database
         existing_wishlist = Wishlist.query.filter_by(amazonWishlistID=wishlist_id).first()
-        
-        if existing_wishlist:    
+
+        if existing_wishlist:
             u.wishlists.append(existing_wishlist)
             db.session.add(u)
             db.session.commit()
@@ -195,7 +197,6 @@ def wishlist_add():
         return redirect(url_for('wishlist_add'))
 
 
-
 @app.route('/user/<user_id>')
 def user(user_id):
 
@@ -206,21 +207,31 @@ def user(user_id):
 
     wishlists = u.wishlists
 
-    return render_template('user.html', 
+    return render_template('user.html',
                            wishlists=wishlists)
 
 
 @app.route('/item/<item_id>')
 def item(item_id):
+<<<<<<< HEAD
+
+    item = Item.query.filter_by(id=int(item_id)).first()
+    variations = item.parent_item.items
+=======
     
     item = Item.query.filter_by(id=int(item_id)).first()
     variations = i.parent_item.items
+>>>>>>> master
 
     # 404 if we don't have it
     if item is None:
         return render_template('404.html')
 
+<<<<<<< HEAD
+    return render_template('item.html',
+=======
     return render_template('item.html', 
+>>>>>>> master
                             item=item,
                             variations=variations)
 
@@ -239,7 +250,7 @@ def login():
     form = LoginForm()
 
     if request.method == 'GET':
-        return render_template('login.html', 
+        return render_template('login.html',
                                form=form)
 
     if form.validate_on_submit():
@@ -252,7 +263,7 @@ def login():
             flash("this user doesn't exist!")
             return redirect(url_for('login'))
         else:
-            # see if the user is in the database    
+            # see if the user is in the database
             u = User.query.filter_by(email=user_email).first()
             # see if the password hashes match
             if u.verify_password(password):
@@ -311,7 +322,7 @@ def register():
         db.session.commit()
         login_user(new_user)
         return redirect(url_for('index'))
-        
+
     return(render_template('register.html',
                            form=form))
 
@@ -334,6 +345,3 @@ def not_found_error(error):
 def internal_error(error):
     db.session.rollback()
     return render_template('500.html'), 500
-
-
-

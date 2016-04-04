@@ -3,7 +3,34 @@
 
 {% block content %}
 
-{{ item }}
+<strong>Item Name</strong>: <a href="{{ item.URL }}">{{ item.name }}</a><br/>
+<strong>List Price</strong>: {{ item.list_price_formatted }}<br/>
+<strong>Date Last Checked</strong>: {{ item.date_last_checked.strftime('%m/%d/%Y')}}<br/>
+
+<br/><br/>
+
+<strong>Variations</strong>
+<ul>
+{% for v in variations %}
+    <li>
+        <strong>Item Name</strong>: <a href="{{ v.URL }}">{{ v.name }}</a><br/>
+        <strong>List Price</strong>: {{ v.list_price_formatted }}<br/>
+        <strong>Date Last Checked</strong>: {{ v.date_last_checked.strftime('%m/%d/%Y')}}<br/>        
+
+        <ul>
+            {% for o in v.offers %}
+            <li>
+                <strong>Condition: {{ o.condition }}</strong><br/>
+                <strong>Price: {{ o.offer_price_formatted }} {% if not o.prime_eligible %} + $3.99 shipping (probably){% endif %} </strong><br/>
+                <strong>Prime Eligible: {{ o.prime_eligible }}</strong><br/>
+                <strong>Availability: {{ o.availability }}</strong><br/>
+                --------------------------------------------------
+            </li>
+            {% endfor %}
+        </ul>
+    </li>
+{% endfor %}
+</ul>
 
 
 {% endblock %}
