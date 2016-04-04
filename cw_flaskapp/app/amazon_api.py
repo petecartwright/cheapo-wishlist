@@ -1,11 +1,15 @@
+import urllib2
+import random
+import unicodedata
+from time import sleep
+
 import bottlenose
 from lxml import objectify
 from amazonconfig import AMAZON_KEY_ID, AMAZON_SECRET_KEY, AMAZON_AFFILIATE_ID
-import urllib2
-from time import sleep
-import pprint
-import random
-import unicodedata
+
+
+
+
 
 
 
@@ -23,14 +27,14 @@ def error_handler(err):
         return True
 
 
-def gracefully_degrade_to_ascii( text ):
+def gracefully_degrade_to_ascii(text):
     ''' Make sure any text return can be handled by a Python string
     '''
-    return unicodedata.normalize('NFKD',text).encode('ascii','ignore')
+    return unicodedata.normalize('NFKD', text).encode('ascii', 'ignore')
 
 
 def debug_print_lxml(to_print):
-    with open('debug.txt','w') as f:
+    with open('debug.txt', 'w') as f:
         f.write(str(to_print))
 
 def get_amazon_api():
@@ -45,7 +49,7 @@ def clean_response(response):
     helps for using tags later on
 
     '''
-    cleaned = response.replace('http://webservices.amazon.com/AWSECommerceService/2011-08-01','')
+    cleaned = response.replace('http://webservices.amazon.com/AWSECommerceService/2011-08-01', '')
     return cleaned
 
 
@@ -54,7 +58,7 @@ def get_parent_ASIN(ASIN, amazon_api=None):
        output: the ASIN of the parent or the AuthorityTitle for a book
                if the object doesn't have a parent (or is the parent), the same ASIN is returned
     '''
-    if amazon_api is None:  
+    if amazon_api is None:
         amazon_api = get_amazon_api()
 
     # different product types handle related items differently, so we need to
@@ -74,7 +78,7 @@ def get_parent_ASIN(ASIN, amazon_api=None):
         else:
             parent_ASIN = ASIN
     else:
-        response = clean_response(amazon_api.ItemLookup(ItemId=ASIN, ResponseGroup="Variations", Condition='All' ))
+        response = clean_response(amazon_api.ItemLookup(ItemId=ASIN, ResponseGroup="Variations", Condition='All'))
         item = objectify.fromstring(response)
 
         try:
@@ -91,15 +95,15 @@ def get_book_variations_from_page(ASIN, amazon_api=None, page_number=1):
     ''' takes an ASIN and a page number
         returns a list of all variation ASINs on that page
     '''
-    if amazon_api is None:  
+    if amazon_api is None:
         amazon_api = get_amazon_api()
 
     print 'getting variations on page ' + str(page_number)
     response = clean_response(amazon_api.ItemLookup(ItemId=ASIN,
-                                                ResponseGroup="RelatedItems",
-                                                Condition='All',
-                                                RelationshipType='AuthorityTitle',
-                                                RelatedItemPage=page_number ))
+                                                    ResponseGroup="RelatedItems",
+                                                    Condition='All',
+                                                    RelationshipType='AuthorityTitle',
+                                                    RelatedItemPage=page_number ))
     root = objectify.fromstring(response)
     relatedItems = root.Items.Item.RelatedItems
     variations_on_page = []
@@ -116,12 +120,12 @@ def get_item_variations_from_parent(parentASIN, amazon_api=None):
     ''' take an amazon "parent" ASIN
         returns a list of item variation ASINs
     '''
-    if amazon_api is None:  
+    if amazon_api is None:
         amazon_api = get_amazon_api()
 
     # different product types handle related items differently, so we need to
     # know how to handle this product
-    product_group = get_product_group(ASIN=parentASIN, amazon_api=amazon_api)    
+    product_group = get_product_group(ASIN=parentASIN, amazon_api=amazon_api)
 
     if product_group in ('Book','Authority Non Buyable'):
         response = clean_response(amazon_api.ItemLookup(ItemId=parentASIN,
@@ -165,7 +169,7 @@ def get_product_group(ASIN, amazon_api=None):
     ''' takes an ASIN
        returns the product group (Book, UnboxVideo, Kitchen, etc)
     '''
-    if amazon_api is None:  
+    if amazon_api is None:
         amazon_api = get_amazon_api()
 
     response = clean_response(amazon_api.ItemLookup(ItemId=ASIN, ResponseGroup="ItemAttributes", Condition='All' ))
@@ -183,12 +187,12 @@ def get_offers(item, amazon_api=None):
     ''' take an item
         get all offers, return a list of dicts of offer info
     '''
-    if amazon_api is None:  
+    if amazon_api is None:
         amazon_api = get_amazon_api()
 
     ASIN = item.ASIN
     item_id = item.id
-    
+
     offers = []
 
     # first get the main offer - this is the one that "won the Buy Box"
@@ -200,7 +204,7 @@ def get_offers(item, amazon_api=None):
         buybox_price_amount = buybox_root.Items.Item.Offers.Offer.OfferListing.Price.Amount
         buybox_price_formatted = buybox_root.Items.Item.Offers.Offer.OfferListing.Price.FormattedPrice
         buybox_availability = buybox_root.Items.Item.Offers.Offer.OfferListing.Availability
-        if buybox_root.Items.Item.Offers.Offer.OfferListing.IsEligibleForPrime == 1: 
+        if buybox_root.Items.Item.Offers.Offer.OfferListing.IsEligibleForPrime == 1:
             buybox_prime_eligible = True
         else:
             buybox_prime_eligible = False
@@ -209,7 +213,7 @@ def get_offers(item, amazon_api=None):
                     'offer_price_amount': buybox_price_amount,
                     'offer_price_formatted': buybox_price_formatted,
                     'prime_eligible': buybox_prime_eligible,
-                    'availability': buybox_availability, 
+                    'availability': buybox_availability,
                     'item_id': item_id
                     })
     else:
@@ -222,23 +226,23 @@ def get_offers(item, amazon_api=None):
     tp_root = objectify.fromstring(tp_response)
 
     offerList = tp_root.Items.Item.Offers.iterchildren(tag='Offer')
-    
+
     for o in offerList:
         condition = o.OfferAttributes.Condition
         offer_price_amount = o.OfferListing.Price.Amount
         offer_price_formatted = o.OfferListing.Price.FormattedPrice
-        if o.OfferListing.IsEligibleForPrime == 1: 
+        if o.OfferListing.IsEligibleForPrime == 1:
             prime_eligible = True
         else:
             prime_eligible = False
         availability = o.OfferListing.Availability
-        
+
 
         offer = {'condition': condition,
                 'offer_price_amount': offer_price_amount,
                 'offer_price_formatted': offer_price_formatted,
                 'prime_eligible': prime_eligible,
-                'availability': availability, 
+                'availability': availability,
                 'item_id': item_id
                 }
         offers.append(offer)
@@ -251,7 +255,7 @@ def get_images(ASIN, amazon_api=None):
         return a dict with the Small, Medium, and Large image URLS and dimensions
         if there's an error, return an empty dict
     '''
-    if amazon_api is None:  
+    if amazon_api is None:
         amazon_api = get_amazon_api()
 
     try:
@@ -262,7 +266,7 @@ def get_images(ASIN, amazon_api=None):
 
     root = objectify.fromstring(response)
 
-    # check for an error element, return {} 
+    # check for an error element, return {}
     if hasattr(root.Items.Request, 'Errors'):
         return {}
 
@@ -296,7 +300,7 @@ def get_images(ASIN, amazon_api=None):
 
 
 def check_for_valid_ASIN(ASIN, amazon_api=None):
-    
+
     if amazon_api is None:
         amazon_api = get_amazon_api()
 
@@ -322,7 +326,7 @@ def get_item_attributes(ASIN, amazon_api=None):
     response = clean_response(amazon_api.ItemLookup(ItemId=ASIN, ResponseGroup="ItemAttributes"))
     root = objectify.fromstring(response)
 
-    # check for an error element, return {} 
+    # check for an error element, return {}
     if hasattr(root.Items.Request, 'Errors'):
         ## TODO: This needs better error handling
         return {}
@@ -353,61 +357,3 @@ def get_item_attributes(ASIN, amazon_api=None):
                        }
 
     return item_attributes
-
-
-def get_all_item_info(ASIN, amazon_api=None):
-    """ Take an ASIN, return a dict with parent info and attribs/offers/images for all variations
-
-    """
-
-
-    if amazon_api is None:
-        amazon_api = get_amazon_api()
-
-    assert check_for_valid_ASIN(ASIN=ASIN, amazon_api=amazon_api) == True, "This is an invalid ASIN!"
-    
-    # get parent ASIN if applicable
-    # if there isn't a parent, this will return the same ASIN
-    parent_ASIN = get_parent_ASIN(ASIN=ASIN, amazon_api=amazon_api)
-    print 'parent ASIN is ' + parent_ASIN
-    parent_attribs = get_item_attributes(ASIN=parent_ASIN, amazon_api=amazon_api)
-    # get variation ASINs
-    variations = get_item_variations_from_parent(ASIN=parent_ASIN, amazon_api=amazon_api)
-    print 'There are %s variations.' % str(len(variations))
-
-    # for each variation:
-    all_item_info = {"parent_ASIN": parent_ASIN,
-                     "parent_attribs": parent_attribs,
-                     "items": []
-                     }
-
-    for v in variations:
-        print 'starting  ' + str(v)
-        images = get_images(ASIN=v, amazon_api=amazon_api)
-        print '    There are %s images.' % str(len(images))
-        attributes = get_item_attributes(ASIN=v, amazon_api=amazon_api)
-        offers = get_offers(ASIN=v, amazon_api=amazon_api)
-        print '    There are %s offers.' % str(len(offers))
-        all_item_info["items"].append({"ASIN": ASIN,
-                              "images": images,
-                              "attributes": attributes,
-                              "offers": offers
-                              })
-        print 'done'
-
-    return all_item_info
-
-
-
-def main():
-
-    amazon_api = get_amazon_api()
-    ASIN = 'B00L5HCVSG'
-    iteminfo = get_all_item_info(ASIN=ASIN, amazon_api=amazon_api)
-
-    with open('item_info.txt','w') as f:
-        f.write(str(iteminfo))
-
-
-if __name__ == '__main__':
-    main()
