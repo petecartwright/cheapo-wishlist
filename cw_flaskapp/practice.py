@@ -176,55 +176,55 @@ def main():
     # pull all existing wishlists
     wishlists = Wishlist.query.all()
 
-    # for w in wishlists:
-    #     # get all of the items from the withlist
-    #     # make sure we have an updated name for the wishlist
-    #     wishlist_name = get_wishlist_name(w.amazonWishlistID)
-    #     if wishlist_name is not None:
-    #         w.name = wishlist_name
-    #         db.session.add(w)
-    #         db.session.commit()
-    #     wishlist_items = get_items_from_wishlist(w.amazonWishlistID)
-    #     # add all of the wishlist items to the database
-    #     add_wishlist_items_to_db(wishlist=w, wishlist_items=wishlist_items)
+    for w in wishlists:
+        # get all of the items from the withlist
+        # make sure we have an updated name for the wishlist
+        wishlist_name = get_wishlist_name(w.amazonWishlistID)
+        if wishlist_name is not None:
+            w.name = wishlist_name
+            db.session.add(w)
+            db.session.commit()
+        wishlist_items = get_items_from_wishlist(w.amazonWishlistID)
+        # add all of the wishlist items to the database
+        add_wishlist_items_to_db(wishlist=w, wishlist_items=wishlist_items)
 
-    # # now that all of the base items are in the wishlist, get all of the parent items
-    # all_items = Item.query.all()
-    # for i in all_items:
-    #     print 'getting parent for {0}'.format(i.ASIN)
-    #     item_parent_ASIN = get_parent_ASIN(ASIN=i.ASIN, amazon_api=amazon_api)
-    #     print 'got parent'
-    #     # if this parent doesn't exist, create it
-    #     parent = ParentItem.query.filter_by(parent_ASIN=item_parent_ASIN).first()
-    #     if parent is None:
-    #         print "parent doesn't exist, creating"
-    #         parent = ParentItem(parent_ASIN=item_parent_ASIN)
-    #         db.session.add(parent)
-    #         db.session.commit()
-    #     # add the parent to the item
-    #     i.parent_item = parent
-    #     db.session.add(i)
-    #     db.session.commit()     
+    # now that all of the base items are in the wishlist, get all of the parent items
+    all_items = Item.query.all()
+    for i in all_items:
+        print 'getting parent for {0}'.format(i.ASIN)
+        item_parent_ASIN = get_parent_ASIN(ASIN=i.ASIN, amazon_api=amazon_api)
+        print 'got parent'
+        # if this parent doesn't exist, create it
+        parent = ParentItem.query.filter_by(parent_ASIN=item_parent_ASIN).first()
+        if parent is None:
+            print "parent doesn't exist, creating"
+            parent = ParentItem(parent_ASIN=item_parent_ASIN)
+            db.session.add(parent)
+            db.session.commit()
+        # add the parent to the item
+        i.parent_item = parent
+        db.session.add(i)
+        db.session.commit()     
 
-    # # from that list of parents, get all variations
-    # all_parents = ParentItem.query.all()
-    # for p in all_parents:
-    #     # get a list of all ASINS under that parent
-    #     print 'getting variations for {0}'.format(p.parent_ASIN)
-    #     variations = get_variations(parent_ASIN=p.parent_ASIN, amazon_api=amazon_api)
-    #     print 'Found {0} variations for {1}'.format(len(variations), p.parent_ASIN)
-    #     for v in variations:
-    #         print 'Checking for existence of variation {0}'.format(v)
-    #         var = Item.query.filter_by(ASIN=v).all()
-    #         if len(var) == 0:
-    #             print 'Don''t have this one, adding.'
-    #             # if we don't have these variations already, add them to the database
-    #             # with the correct parent
-    #             new_variation = Item(ASIN=v, parent_item=p)
-    #             db.session.add(new_variation)
-    #             db.session.commit()
-    #         else:
-    #             print 'Have it.'
+    # from that list of parents, get all variations
+    all_parents = ParentItem.query.all()
+    for p in all_parents:
+        # get a list of all ASINS under that parent
+        print 'getting variations for {0}'.format(p.parent_ASIN)
+        variations = get_variations(parent_ASIN=p.parent_ASIN, amazon_api=amazon_api)
+        print 'Found {0} variations for {1}'.format(len(variations), p.parent_ASIN)
+        for v in variations:
+            print 'Checking for existence of variation {0}'.format(v)
+            var = Item.query.filter_by(ASIN=v).all()
+            if len(var) == 0:
+                print 'Don''t have this one, adding.'
+                # if we don't have these variations already, add them to the database
+                # with the correct parent
+                new_variation = Item(ASIN=v, parent_item=p)
+                db.session.add(new_variation)
+                db.session.commit()
+            else:
+                print 'Have it.'
 
     ## Next step is to get the item data for everything in the database
 
