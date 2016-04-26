@@ -8,12 +8,6 @@ from lxml import objectify
 from amazonconfig import AMAZON_KEY_ID, AMAZON_SECRET_KEY, AMAZON_AFFILIATE_ID
 
 
-
-
-
-
-
-
 # allow us to print lxml.objectify objects in a nice way
 # can pull this out in prod
 objectify.enable_recursive_str()
