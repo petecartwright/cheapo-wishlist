@@ -1,11 +1,9 @@
 import requests
 
 from app  import app, db
-from .models import Wishlist, User, UserSettings, ParentItem, Item
+from .models import ParentItem, Item
 from flask import render_template, request, url_for, redirect, g, session, flash, Markup, jsonify
 import wishlist as w
-
-from bs4 import BeautifulSoup
 
 
 #########################################################################

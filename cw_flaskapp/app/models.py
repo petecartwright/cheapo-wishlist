@@ -1,8 +1,6 @@
 from app import db
 
 
-
-
 class ParentItem(db.Model):
     id                      = db.Column(db.Integer, primary_key=True)
     parent_ASIN             = db.Column(db.String(40))

@@ -15,38 +15,6 @@ BASE_URL = 'http://www.amazon.com/gp/registry/wishlist/'
 #
 #############################################
 
-def is_empty_wishlist(wishlistPage):
-    """ Return True if the wishlist has no items in it, False otherwise
-
-        ## TODO - Obviously this hardcoding sucks - add this to tests with "known bad" so we notice when they break
-    """
-    if wishlistPage.text.find("0 items on list") != -1:
-        return True
-    else:
-        return False
-
-
-def is_private_wishlist(wishlistPage):
-    """ Return True if the wishlist is private, False otherwise
-
-    ## TODO - Obviously this hardcoding sucks - add this to tests with "known bad" so we notice when they break
-    """
-    if wishlistPage.text.find("If this is your Wish List, please sign in") != -1:
-        return True
-    else:
-        return False
-
-
-def is_invalid_wishlist(wishListPage):
-    """ Return True if the wishlist ID is not valid, False otherwise
-
-        ## TODO - Obviously this hardcoding sucks - add this to tests with "known bad" so we notice when they break
-    """
-    if wishListPage.text.find("The Web address you entered is not a functioning page on our site") != -1:
-        return True
-    else:
-        return False
-
 
 def get_wishlist_name(wishlistID):
     """ Take an wishlistID and return the name of the wishlist (ex - "Pete's Wishlist" or "Christmas List" or "Kitchen Stuff I Want", etc)
