@@ -5,6 +5,26 @@ from app.wishlist import get_items_from_wishlist, get_wishlist_name
 from datetime import datetime
 
 
+
+WISHLIST_ID = '1ZF0FXNHUY7IG'
+
+
+def delete_all_items():
+    ''' remove all items from the database so we can start anew with fresh data
+        ##TODO: make this into an archive?
+    '''
+
+
+    try:
+        count_of_deletes = Item.query.delete()
+        db.session.commit()
+        print '{0} items deleted.'.format(count_of_deletes)
+        return True
+    except:
+        db.session.rollback()
+        return False
+
+
 def add_wishlist_items_to_db(wishlist, wishlist_items):
     for i in wishlist_items:
         print 'on item ' + i['ASIN']
