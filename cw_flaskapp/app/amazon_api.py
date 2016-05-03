@@ -194,16 +194,21 @@ def get_offers(item, amazon_api=None):
     buybox_response = clean_response(amazon_api.ItemLookup(ItemId=ASIN, ResponseGroup="OfferListings"))
     buybox_root = objectify.fromstring(buybox_response)
     if buybox_root.Items.Item.Offers.TotalOffers != 0:
+        print 'have a buybox'
         buybox_condition = buybox_root.Items.Item.Offers.Offer.OfferAttributes.Condition
         buybox_price_amount = buybox_root.Items.Item.Offers.Offer.OfferListing.Price.Amount
         buybox_price_formatted = buybox_root.Items.Item.Offers.Offer.OfferListing.Price.FormattedPrice
-        buybox_availability = buybox_root.Items.Item.Offers.Offer.OfferListing.Availability
+        if hasattr(buybox_root.Items.Item.Offers.Offer.OfferListing, 'Availability'):
+            buybox_availability = buybox_root.Items.Item.Offers.Offer.OfferListing.Availability
+        else:
+            buybox_availability = 'Not sure!'
         if buybox_root.Items.Item.Offers.Offer.OfferListing.IsEligibleForPrime == 1:
             buybox_prime_eligible = True
         else:
             buybox_prime_eligible = False
 
         offers.append({'condition': buybox_condition,
+                    'offer_source': 'Buybox',
                     'offer_price_amount': buybox_price_amount,
                     'offer_price_formatted': buybox_price_formatted,
                     'prime_eligible': buybox_prime_eligible,
@@ -213,7 +218,7 @@ def get_offers(item, amazon_api=None):
     else:
         print 'No buybox for ASIN {0}, name {1}'.format(item.ASIN, item.name)
 
-
+    print 'after buybox, offers has {0} elements'.format(str(len(offers)))
     # then get the best third-party offers
 
     tp_response = clean_response(amazon_api.ItemLookup(ItemId=ASIN, ResponseGroup="Offers", Condition='All' ))
@@ -229,10 +234,13 @@ def get_offers(item, amazon_api=None):
             prime_eligible = True
         else:
             prime_eligible = False
-        availability = o.OfferListing.Availability
-
+        if hasattr(o.OfferListing, 'Availability'):
+            availability = o.OfferListing.Availability
+        else:
+            availability = 'Not sure!'
 
         offer = {'condition': condition,
+                'offer_source': 'Other Sellers',
                 'offer_price_amount': offer_price_amount,
                 'offer_price_formatted': offer_price_formatted,
                 'prime_eligible': prime_eligible,
@@ -240,6 +248,8 @@ def get_offers(item, amazon_api=None):
                 'item_id': item_id
                 }
         offers.append(offer)
+
+    print 'after others, offers has {0} elements'.format(str(len(offers)))
 
     return offers
 
