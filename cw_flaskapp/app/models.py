@@ -19,6 +19,7 @@ class Item(db.Model):
     images                  = db.relationship('Image', backref='item', lazy='dynamic')
     offers                  = db.relationship('Offer', backref='item', lazy='dynamic')
     parent_id               = db.Column(db.Integer, db.ForeignKey('parent_item.id'))
+    is_on_wishlist          = db.Column(db.Boolean)
 
     def __init__(self, ASIN, parent_item=None):
         self.ASIN = ASIN
@@ -51,6 +52,7 @@ class Image(db.Model):
 class Offer(db.Model):
     id                      = db.Column(db.Integer, primary_key=True)
     condition               = db.Column(db.String(200))
+    offer_source            = db.Column(db.String(100))
     offer_price_amount      = db.Column(db.Integer)
     offer_price_formatted   = db.Column(db.String(40))
     prime_eligible          = db.Column(db.Boolean)
@@ -60,13 +62,4 @@ class Offer(db.Model):
     def __repr__(self):
 
         return '<Offer {0} for item {1}>'.format(self.id, self.item.name)
-
-
-class Variation(db.Model):
-    id                      = db.Column(db.Integer, primary_key=True)
-    parent_ASIN             = db.Column(db.String(40))  
-    ASIN                    = db.Column(db.String(40))  
-
-    def __repr__(self):
-        return '<Variation %r>' % (self.id)
 
