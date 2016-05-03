@@ -74,10 +74,6 @@ def get_items_from_wishlist(wishlistID):
     r = requests.get(wishlistURL)
     wishlistFirstPage = BeautifulSoup(r.content, "html.parser")
 
-    assert is_empty_wishlist(wishlistFirstPage) == False, wishlistID + ' is an empty wishlist!'
-    assert is_private_wishlist(wishlistFirstPage) == False, wishlistID + ' is an private wishlist!'
-    assert is_invalid_wishlist(wishlistFirstPage) == False, wishlistID + ' is a private or invalid wishlist!'
-
     if wishlistFirstPage.find(class_="a-pagination"):
         #if we have multiple pages:
         # get the number of pages on the wishlist. in the a-pagination div, there's a list of pages to go to.
@@ -89,7 +85,7 @@ def get_items_from_wishlist(wishlistID):
     allItems = []
 
     # only pull one page for testing
-    finalPage = 1
+    # finalPage = 1
 
     # run through each page:
     for i in range(1, finalPage+1):
