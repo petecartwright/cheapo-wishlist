@@ -7,4 +7,29 @@ This is the index page
  {{ super() }}
 {% endblock %}
 
+
+<br /><br />
+<u>Best by Buybox</u>
+<br />
+<a href="{{ best_by_buybox['wishlist_item'].URL }}">{{ best_by_buybox['wishlist_item'].name }}</a>
+<br />
+<img src="{{ best_by_buybox['wishlist_item'].images.all()[0].mediumURL }}">
+<br />
+Get it for just: {{ "${:,.2f}".format(best_by_buybox['best_offer_price']/100) }}
+For a savings of {{ "${:,.2f}".format(best_by_buybox['savings_vs_list']/100)  }} over list price!
+
+
+<br /><br />
+<u>Best by List</u>
+<br />
+<a href="{{ best_by_list['wishlist_item'].URL }}">{{ best_by_list['wishlist_item'].name }}</a>
+<br />
+<img src="{{ best_by_list['wishlist_item'].images.all()[0].mediumURL }}">
+<br />
+Get it for just: {{ "${:,.2f}".format(best_by_list['best_offer_price']/100) }}
+For a savings of {{ "${:,.2f}".format(best_by_list['savings_vs_list']/100)  }} over list price!
+
+
+
+
 {% endblock %}
