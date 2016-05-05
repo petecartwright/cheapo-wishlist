@@ -1,30 +1,123 @@
 from app import db
-from app.models import Wishlist, Item, ParentItem, Image, Variation, Offer
+from app.models import Item, ParentItem, Image, Offer
 from app.amazon_api import get_parent_ASIN, get_item_attributes, get_amazon_api, get_images, get_item_variations_from_parent, get_offers
 from app.wishlist import get_items_from_wishlist, get_wishlist_name
 from datetime import datetime
 
+import logging
 
-def add_wishlist_items_to_db(wishlist, wishlist_items):
+logging.basicConfig(filename='amazon_log.txt', level=logging.DEBUG)
+
+logger = logging.getLogger(__name__)
+
+WISHLIST_ID = '1ZF0FXNHUY7IG'
+
+
+# TODO - rerun the scraper to get the buybox price
+# TODO - test with buybox price
+
+# TODO - build index page
+# TODO - build item page
+# TODO - build all page
+
+# TODO - download images instead of hotlinking to Amazon
+
+
+def empty_database():
+    deleted_items = Item.query.delete()
+    logger.debug('deleted {0} items'.format(str(deleted_items)))
+    deleted_images = Image.query.delete()
+    logger.debug('deleted {0} images'.format(str(deleted_images)))
+    deleted_offers = Offer.query.delete()
+    logger.debug('deleted {0} offers'.format(str(deleted_images)))
+    delete_parents = ParentItem.query.delete()
+    logger.debug('deleted {0} parents'.format(str(deleted_images)))
+    db.session.commit()
+
+
+def get_buybox_price(item):
+    ''' take an Item object, return the buybox price and offer if one exists.
+        Returns None if not
+    '''
+
+    buybox_price = None
+
+    for offer in item.offers.all():
+        if offer.offer_source == 'Buybox':
+            buybox_price = offer.offer_price_amount
+
+    return buybox_price
+
+
+def get_best_deals():
+    ''' look at all of the items and offers in the wishlist, then return a dict with the best deal per item
+    '''
+
+    all_wishlist_items = Item.query.filter(Item.is_on_wishlist==True).all()
+
+    best_deals_on_each_item = []
+
+    for item in all_wishlist_items:
+
+        # get the list price for the variant we had in the wishlist
+        # get the buybox for this item
+        list_price = item.list_price_amount or 0
+        best_offer_price = 999999999      # assuming all of our prices will be lower than a billion dollars
+        best_offer = None
+        main_item_url = item.URL
+        
+        # get the buybox price for this item
+        buybox_price = get_buybox_price(item)
+
+        # get all variants, including that item
+        all_items_under_parent = item.parent_item.items.all()
+
+        for x in all_items_under_parent:
+            for o in x.offers.all():
+                if o.offer_price_amount < best_offer_price:
+                    best_offer = o
+                    best_offer_price = o.offer_price_amount
+
+        # calculate savings!
+        if list_price and best_offer_price:
+            savings_vs_list = list_price - best_offer_price
+        else:
+            savings_vs_list = 0
+
+        if buybox_price and best_offer_price:
+            savings_vs_buybox = buybox_price - best_offer_price
+        else:
+            savings_vs_buybox = 0
+
+        best_deal = {'wishlist_item': item,
+                     'best_price_item': o.item,
+                     'list_price': list_price,
+                     'buybox_price': buybox_price,
+                     'best_offer_price': best_offer_price,
+                     'best_offer': best_offer,
+                     'savings_vs_list': savings_vs_list,
+                     'savings_vs_buybox': savings_vs_buybox
+                     }
+        best_deals_on_each_item.append(best_deal)
+
+
+    return best_deals_on_each_item
+
+
+
+def add_wishlist_items_to_db( wishlist_items):
     for i in wishlist_items:
         print 'on item ' + i['ASIN']
-        # add item to database if it doesn't exist
+        # check to see if we already have it, if not, add it to the database
         item_to_add = Item.query.filter_by(ASIN=i['ASIN']).first()
         
         if item_to_add is None:
             print i['ASIN'] + "doesn't exist, creating it"
             item_to_add = Item(ASIN=i['ASIN'])
-
-        # check to see if it's already in that wishlist, if not, add it
-        if not(item_to_add in wishlist.items):
-            print 'not already in the wishlist... adding'
-            item_to_add.wishlists.append(wishlist)
+            item_to_add.is_on_wishlist = True
             db.session.add(item_to_add)
             db.session.commit()
-        else:
-            print 'already in the wishlist'
-
-        print 'done with ' + i['ASIN']
+        
 
 
 def get_image_sizes(item_image):
@@ -141,29 +234,23 @@ def refresh_item_data(item, amazon_api=None):
     db.session.commit()
     print 'got attribs for  ' + ASIN
 
-    # get the main image for the item
-    ## TODO: there are multiple images for each prod, it would be nice to get them all.
-    item_image = get_images(ASIN=ASIN, amazon_api=amazon_api)
-
-    # if we got images back, remove the old ones
-    # if item_image is not None:
-    #     current_images = i.images.all()
-    #     for image in current_images:
-    #         db.delete(image)
-    #         db.commit()
-
-    image_sizes = get_image_sizes(item_image)
-    new_item_image = Image(smallURL        = str(image_sizes['smallURL']),
-                           smallHeight     = int(image_sizes['smallHeight'] or 0),
-                           smallWidth      = int(image_sizes['smallWidth'] or 0),
-                           mediumURL       = str(image_sizes['mediumURL']),
-                           mediumHeight    = int(image_sizes['mediumHeight']  or 0),
-                           mediumWidth     = int(image_sizes['mediumWidth'] or 0),
-                           largeURL        = str(image_sizes['largeURL']),
-                           largeHeight     = int(image_sizes['largeHeight'] or 0),
-                           largeWidth      = int(image_sizes['largeWidth'] or 0),
-                           item_id         = item.id)
-    db.session.add(new_item_image)
+    # only get images if it's the wishlist item
+    if item.is_on_wishlist == True:
+        # get the main image for the item
+        ## TODO: there are multiple images for each prod, it would be nice to get them all.
+        item_image = get_images(ASIN=ASIN, amazon_api=amazon_api)
+        image_sizes = get_image_sizes(item_image)
+        new_item_image = Image(smallURL        = str(image_sizes['smallURL']),
+                               smallHeight     = int(image_sizes['smallHeight'] or 0),
+                               smallWidth      = int(image_sizes['smallWidth'] or 0),
+                               mediumURL       = str(image_sizes['mediumURL']),
+                               mediumHeight    = int(image_sizes['mediumHeight']  or 0),
+                               mediumWidth     = int(image_sizes['mediumWidth'] or 0),
+                               largeURL        = str(image_sizes['largeURL']),
+                               largeHeight     = int(image_sizes['largeHeight'] or 0),
+                               largeWidth      = int(image_sizes['largeWidth'] or 0),
+                               item_id         = item.id)
+        db.session.add(new_item_image)
 
     return True
 
@@ -171,22 +258,16 @@ def refresh_item_data(item, amazon_api=None):
 
 def main():
 
+    # clear out all that old, boring data
+    empty_database()
+
     amazon_api = get_amazon_api()
 
-    # pull all existing wishlists
-    wishlists = Wishlist.query.all()
+    # scan the wishlist on Amazon's site
+    wishlist_items = get_items_from_wishlist(WISHLIST_ID)
+    # add all of the wishlist items to the database
+    add_wishlist_items_to_db(wishlist_items=wishlist_items)
 
-    for w in wishlists:
-        # get all of the items from the withlist
-        # make sure we have an updated name for the wishlist
-        wishlist_name = get_wishlist_name(w.amazonWishlistID)
-        if wishlist_name is not None:
-            w.name = wishlist_name
-            db.session.add(w)
-            db.session.commit()
-        wishlist_items = get_items_from_wishlist(w.amazonWishlistID)
-        # add all of the wishlist items to the database
-        add_wishlist_items_to_db(wishlist=w, wishlist_items=wishlist_items)
 
     # now that all of the base items are in the wishlist, get all of the parent items
     all_items = Item.query.all()
@@ -250,6 +331,7 @@ def main():
                 for o in offers:
                     new_offer = Offer()
                     new_offer.condition = str(o['condition'])
+                    new_offer.offer_source = str(o['offer_source'])
                     new_offer.offer_price_amount = int(o['offer_price_amount'])
                     new_offer.offer_price_formatted = str(o['offer_price_formatted'])
                     new_offer.prime_eligible = o['prime_eligible']
@@ -258,6 +340,8 @@ def main():
                     db.session.add(new_offer)
                     db.session.commit()
  
+
+
 
 
 
