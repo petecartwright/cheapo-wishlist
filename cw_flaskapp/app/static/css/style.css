@@ -1,0 +1,12 @@
+
+.thumbnail img { 
+    min-height:200px; 
+    height:200px; 
+    } // or whatever height you desire
+
+
+.navbar-text {
+    width:100%;
+    text-align: center;
+}
+
