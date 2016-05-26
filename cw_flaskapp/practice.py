@@ -1,6 +1,6 @@
 from app import db
 from app.models import Item, ParentItem, Image, Offer
-from app.amazon_api import get_parent_ASIN, get_item_attributes, get_amazon_api, get_images, get_item_variations_from_parent, get_offers
+from app.amazon_api import get_parent_ASIN, get_item_attributes, get_amazon_api, get_images, get_item_variations_from_parent, get_offers, error_handler
 from app.wishlist import get_items_from_wishlist, get_wishlist_name
 from datetime import datetime
 
@@ -13,14 +13,7 @@ logger = logging.getLogger(__name__)
 WISHLIST_ID = '1ZF0FXNHUY7IG'
 
 
-# TODO - rerun the scraper to get the buybox price
-# TODO - test with buybox price
-
-# TODO - build index page
-# TODO - build item page
-# TODO - build all page
-
-# TODO - download images instead of hotlinking to Amazon
+# TODO - add best deals to database
 
 
 def empty_database():
@@ -50,12 +43,10 @@ def get_buybox_price(item):
 
 
 def get_best_deals():
-    ''' look at all of the items and offers in the wishlist, then return a dict with the best deal per item
+    ''' look at all of the items and offers in the wishlist, then flag one offer per item as the best 
     '''
 
     all_wishlist_items = Item.query.filter(Item.is_on_wishlist==True).all()
-
-    best_deals_on_each_item = []
 
     for item in all_wishlist_items:
 
@@ -74,31 +65,45 @@ def get_best_deals():
 
         for x in all_items_under_parent:
             for o in x.offers.all():
+                # reset the best offer tracking from last time
+                o.best_offer = False
                 if o.offer_price_amount < best_offer_price:
                     best_offer = o
                     best_offer_price = o.offer_price_amount
 
-        # calculate savings!
-        if list_price and best_offer_price:
-            savings_vs_list = list_price - best_offer_price
+        if best_offer:
+            # mark the best offer
+            print('Best Offer for {0} is {1}'.format(item.name, best_offer))
+            best_offer['best_offer'] = True
+            best_offer['wishlist_item_id'] = item.id
+            db.session.add(best_offer)
+            db.session.commit()
         else:
-            savings_vs_list = 0
+            print('No best offer for {0}'.format(item.name))
 
-        if buybox_price and best_offer_price:
-            savings_vs_buybox = buybox_price - best_offer_price
-        else:
-            savings_vs_buybox = 0
 
-        best_deal = {'wishlist_item': item,
-                     'best_price_item': o.item,
-                     'list_price': list_price,
-                     'buybox_price': buybox_price,
-                     'best_offer_price': best_offer_price,
-                     'best_offer': best_offer,
-                     'savings_vs_list': savings_vs_list,
-                     'savings_vs_buybox': savings_vs_buybox
-                     }
-        best_deals_on_each_item.append(best_deal)
+
+        # # calculate savings!
+        # if list_price and best_offer_price:
+        #     savings_vs_list = list_price - best_offer_price
+        # else:
+        #     savings_vs_list = 0
+
+        # if buybox_price and best_offer_price:
+        #     savings_vs_buybox = buybox_price - best_offer_price
+        # else:
+        #     savings_vs_buybox = 0
+
+        # best_deal = {'wishlist_item': item,
+        #              'best_price_item': o.item,
+        #              'list_price': list_price,
+        #              'buybox_price': buybox_price,
+        #              'best_offer_price': best_offer_price,
+        #              'best_offer': best_offer,
+        #              'savings_vs_list': savings_vs_list,
+        #              'savings_vs_buybox': savings_vs_buybox
+        #              }
+        # best_deals_on_each_item.append(best_deal)
 
 
     return best_deals_on_each_item
@@ -112,7 +117,7 @@ def add_wishlist_items_to_db( wishlist_items):
         item_to_add = Item.query.filter_by(ASIN=i['ASIN']).first()
         
         if item_to_add is None:
-            print i['ASIN'] + "doesn't exist, creating it"
+            print "{0} doesn't exist, creating it".format(i['ASIN'])
             item_to_add = Item(ASIN=i['ASIN'])
             item_to_add.is_on_wishlist = True
             db.session.add(item_to_add)
