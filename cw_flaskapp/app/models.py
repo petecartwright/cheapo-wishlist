@@ -58,6 +58,8 @@ class Offer(db.Model):
     prime_eligible          = db.Column(db.Boolean)
     availability            = db.Column(db.String(200))
     item_id                 = db.Column(db.Integer, db.ForeignKey('item.id'))
+    wishlist_item_id        = db.Column(db.Integer)
+    best_offer              = db.Column(db.Boolean)
     
     def __repr__(self):
 
