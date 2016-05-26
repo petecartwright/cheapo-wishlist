@@ -2,10 +2,15 @@ import urllib2
 import random
 import unicodedata
 from time import sleep
+import logging
 
-import bottlenose
 from lxml import objectify
+import bottlenose
 from amazonconfig import AMAZON_KEY_ID, AMAZON_SECRET_KEY, AMAZON_AFFILIATE_ID
+
+logging.basicConfig(filename='amazon_log.txt', level=logging.DEBUG)
+
+logger = logging.getLogger(__name__)
 
 # allow us to print lxml.objectify objects in a nice way
 # can pull this out in prod
@@ -14,10 +19,13 @@ objectify.enable_recursive_str()
 
 def error_handler(err):
     ex = err['exception']
+    url = err['api_url']
+    logger.debug('{0} error getting {0} '.format(type(ex), url))
     if isinstance(ex, urllib2.HTTPError) and ex.code == 503:
         print 'whoa ho ho, slow down a bit buckaroo'
         sleep(random.expovariate(0.1))
         return True
+    return False
 
 
 def gracefully_degrade_to_ascii(text):
