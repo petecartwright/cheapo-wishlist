@@ -42,7 +42,7 @@ def get_buybox_price(item):
     return buybox_price
 
 
-def get_best_deals():
+def find_best_offer_per_wishlist_item():
     ''' look at all of the items and offers in the wishlist, then flag one offer per item as the best 
     '''
 
@@ -74,39 +74,12 @@ def get_best_deals():
         if best_offer:
             # mark the best offer
             print('Best Offer for {0} is {1}'.format(item.name, best_offer))
-            best_offer['best_offer'] = True
-            best_offer['wishlist_item_id'] = item.id
+            best_offer.best_offer = True
+            best_offer.wishlist_item_id = item.id
             db.session.add(best_offer)
             db.session.commit()
         else:
             print('No best offer for {0}'.format(item.name))
-
-
-
-        # # calculate savings!
-        # if list_price and best_offer_price:
-        #     savings_vs_list = list_price - best_offer_price
-        # else:
-        #     savings_vs_list = 0
-
-        # if buybox_price and best_offer_price:
-        #     savings_vs_buybox = buybox_price - best_offer_price
-        # else:
-        #     savings_vs_buybox = 0
-
-        # best_deal = {'wishlist_item': item,
-        #              'best_price_item': o.item,
-        #              'list_price': list_price,
-        #              'buybox_price': buybox_price,
-        #              'best_offer_price': best_offer_price,
-        #              'best_offer': best_offer,
-        #              'savings_vs_list': savings_vs_list,
-        #              'savings_vs_buybox': savings_vs_buybox
-        #              }
-        # best_deals_on_each_item.append(best_deal)
-
-
-    return best_deals_on_each_item
 
 
 
@@ -345,6 +318,9 @@ def main():
                     db.session.add(new_offer)
                     db.session.commit()
  
+    # now let's see what the best deals are!
+    find_best_offer_per_wishlist_item()
+
 
 
 
