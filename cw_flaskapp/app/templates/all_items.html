@@ -1,0 +1,36 @@
+{% extends 'base.html' %}
+
+
+{% block content %}
+
+
+
+<table class="table">
+
+    <thead>
+        <tr>
+            <th> Name</th>
+            <th> List</th>
+            <th> Best Price</th>
+            <th> $$$AVING$$$ </th>
+        </tr>
+    </thead>
+
+    <tbody>
+    {% for deal in best_deals_sorted %}
+
+        <tr>
+            <td><a href="{{deal.wishlist_item.URL}}">{{ deal.wishlist_item.name }}</a></td>
+            <td>{{ "${:,.2f}".format(deal['list_price']/100) }}</td>
+            <td>{{ "${:,.2f}".format(deal['best_offer_price']/100) }}</td>
+            <td>{{ "${:,.2f}".format(deal['savings_vs_list']/100) }}</td>    
+        </tr>
+
+    {% endfor %}
+    </tbody>
+</table>    
+
+<ul />
+
+
+{% endblock %}

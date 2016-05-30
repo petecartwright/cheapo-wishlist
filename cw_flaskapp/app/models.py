@@ -1,71 +1,4 @@
 from app import db
-from flask.ext.login import UserMixin
-from werkzeug.security import generate_password_hash, check_password_hash
-
-
-userWishlists = db.Table('userWishlists', 
-    db.Column('user_id', db.Integer, db.ForeignKey('user.id')),
-    db.Column('wishlist_id', db.Integer, db.ForeignKey('wishlist.id'))    
-    )
-
-
-class User(UserMixin, db.Model):
-    id          = db.Column(db.Integer, primary_key=True)
-    username    = db.Column(db.String(80), unique=True)
-    email       = db.Column(db.String(120), unique=True)
-    password_hash = db.Column(db.String(128))
-    logged_in   = db.Column(db.Boolean, default=False)
-    wishlists   = db.relationship('Wishlist', secondary=userWishlists,
-                                backref=db.backref('users', lazy='dynamic'))
-    settings    = db.relationship('UserSettings', backref='user', lazy='dynamic')
-
-    
-    @property
-    def password(self):
-        raise AttributeError('password is not a readable attribute')
-
-    @password.setter
-    def password(self, password):
-        self.password_hash = generate_password_hash(password)
-
-    def verify_password(self, password):
-        return check_password_hash(self.password_hash, password)
-
-
-    def __init__(self, email):
-        self.email = email
-
-    def __repr__(self):
-        return '<User %r>' % (self.email)
-
-
-class UserSettings(db.Model):
-    id          = db.Column(db.Integer, primary_key=True)
-    setting1    = db.Column(db.String(40))
-    setting2    = db.Column(db.String(40))
-    setting3    = db.Column(db.String(40))
-    setting4    = db.Column(db.String(40))
-    setting5    = db.Column(db.String(40))
-    user_id     = db.Column(db.Integer, db.ForeignKey('user.id'))
-
-    def __repr__(self):
-        return '<UserSettings for user %r>' % (self.user_id)
-
-
-wishlistItems = db.Table('wishlistItems',
-        db.Column('wishlist_id', db.Integer, db.ForeignKey('wishlist.id')),
-        db.Column('item_id', db.Integer, db.ForeignKey('item.id')),
-    )
-
-
-class Wishlist(db.Model):
-    id               = db.Column(db.Integer, primary_key=True)
-    amazonWishlistID = db.Column(db.String(40), unique=True)
-    name             = db.Column(db.String(40))
-    items            = db.relationship('Item', secondary=wishlistItems,
-                                       backref=db.backref('wishlists', lazy='dynamic'))
-    def __repr__(self):
-        return '<Wishlist %r>' % (self.amazonWishlistID)
 
 
 class ParentItem(db.Model):
@@ -86,6 +19,7 @@ class Item(db.Model):
     images                  = db.relationship('Image', backref='item', lazy='dynamic')
     offers                  = db.relationship('Offer', backref='item', lazy='dynamic')
     parent_id               = db.Column(db.Integer, db.ForeignKey('parent_item.id'))
+    is_on_wishlist          = db.Column(db.Boolean)
 
     def __init__(self, ASIN, parent_item=None):
         self.ASIN = ASIN
@@ -118,22 +52,16 @@ class Image(db.Model):
 class Offer(db.Model):
     id                      = db.Column(db.Integer, primary_key=True)
     condition               = db.Column(db.String(200))
+    offer_source            = db.Column(db.String(100))
     offer_price_amount      = db.Column(db.Integer)
     offer_price_formatted   = db.Column(db.String(40))
     prime_eligible          = db.Column(db.Boolean)
     availability            = db.Column(db.String(200))
     item_id                 = db.Column(db.Integer, db.ForeignKey('item.id'))
+    wishlist_item_id        = db.Column(db.Integer)
+    best_offer              = db.Column(db.Boolean)
     
     def __repr__(self):
 
         return '<Offer {0} for item {1}>'.format(self.id, self.item.name)
-
-
-class Variation(db.Model):
-    id                      = db.Column(db.Integer, primary_key=True)
-    parent_ASIN             = db.Column(db.String(40))  
-    ASIN                    = db.Column(db.String(40))  
-
-    def __repr__(self):
-        return '<Variation %r>' % (self.id)
 

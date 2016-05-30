@@ -1,110 +1,82 @@
 import requests
+import logging
 
-from app  import app, db, lm, celery
-from .models import Wishlist, User, UserSettings, ParentItem, Item
+from app  import app, db
+from .models import ParentItem, Item, Offer
+
 from flask import render_template, request, url_for, redirect, g, session, flash, Markup, jsonify
-from flask.ext.login import login_user, logout_user, login_required, current_user
-from forms import LoginForm, WishlistForm, RegistrationForm
 import wishlist as w
 
-from bs4 import BeautifulSoup
+FORMAT = '%(asctime)-15s %(message)s'
 
 
+logging.basicConfig(filename='best_deals.txt', level=logging.DEBUG, format=FORMAT)
+
+logger = logging.getLogger(__name__)
 
 #########################################################################
 #########################################################################
 #
-#   Helper functions
+#   Helpers
 #
 #########################################################################
 #########################################################################
 
-@app.before_request
-def before_request():
-    g.user = current_user
-
-
-@lm.user_loader
-def load_user(user_id):
-    return User.query.get(int(user_id))
-
-
-
-
-def is_usable_wishlist(wishlist_id):
-    ''' Take an amazon wishlist ID, return a True if it's usable. False otherwise
-
-        ##TODO - this should have a proper error message in it.
-
+def get_buybox_price(item):
+    ''' take an Item object, return the buybox price and offer if one exists.
+        Returns None if not
     '''
-    ## TODO - this needs to be an endpoint
-    wishlistURL = 'http://www.amazon.com/gp/registry/wishlist/' + wishlist_id
-    r = requests.get(wishlistURL)
-    wishlistFirstPage = BeautifulSoup(r.content, "html.parser")
 
-    if (w.is_empty_wishlist(wishlistFirstPage) or
-        w.is_invalid_wishlist(wishlistFirstPage) or
-        w.is_private_wishlist(wishlistFirstPage)
-        ):
-        return False
-    else:
-        return True
+    buybox_price = None
+
+    for offer in item.offers.all():
+        if offer.offer_source == 'Buybox':
+            buybox_price = offer.offer_price_amount
+
+    return buybox_price
 
 
-def user_exists(email):
-    ''' Take an email address, return True if that user is already in the db, False otherwise '''
-    # try to get that user by email
-    print email
-    u = User.query.filter_by(email=email).first()
-    if u:
-        return True
-    else:
-        return False
+
+def get_best_deals():
+    ''' look at all of the items and offers in the wishlist, then return a dict with the best deal per item
+    '''
+
+    all_best_deals = Offer.query.filter(Offer.best_offer==True).all()
+
+    # get all of the WISHLIST items associated with these deals
+    deals_with_info = []
+    for deal in all_best_deals:
+        item = Item.query.filter(Item.id==deal.wishlist_item_id).first()
+        buybox_price = get_buybox_price(item) or 0
+        list_price = item.list_price_amount or 0
+        main_item_url = item.URL
+        best_offer_price = deal.offer_price_amount
+
+        # calculate savings!
+        if list_price and best_offer_price:
+            savings_vs_list = list_price - best_offer_price
+        else:
+            savings_vs_list = 0
+
+        if buybox_price and best_offer_price:
+            savings_vs_buybox = buybox_price - best_offer_price
+        else:
+            savings_vs_buybox = 0
+
+    
+        best_deal = {'wishlist_item': item,         # the wishlist item this offer applies to
+                     'best_price_item': deal.item,  # the actual variant the offer is associated with
+                     'list_price': list_price,
+                     'buybox_price': buybox_price,
+                     'best_offer_price': best_offer_price,
+                     'best_offer': deal,
+                     'savings_vs_list': savings_vs_list,
+                     'savings_vs_buybox': savings_vs_buybox
+                     }
+        deals_with_info.append(best_deal)   
 
 
-#########################################################################
-#########################################################################
-#
-#   Celery tasks and status routes!
-#
-#########################################################################
-#########################################################################
-
-@celery.task(bind=True)
-def refresh_wishlist_on_demand_task(wishlist_id):
-    return {'status': 'this is the status', 'result': 'this is the result'}
-
-
-# 'liberally borrowed' from Miguel Grinberg's tutorial here:
-#  http://blog.miguelgrinberg.com/post/using-celery-with-flask
-@app.route('/refreshstatus/<task_id>')
-def refreshstatus(task_id):
-
-    task = refresh_wishlist_on_demand_task.AsyncResult(task_id)
-    print task
-    if not task:
-        response = {'state': 'Nonexistent',
-                    'status': 'No status'}
-
-    elif task.state == 'PENDING':
-        # job hasn't started
-        response = {'state': task.state,
-                    'status': 'Pending...',
-                    'result': 'this is the result'
-                    }
-    elif task.state != 'FAILURE':
-        response = {'state': task.state,
-                    'status': task.info.get('status','')
-                    }
-        if 'result' in task.info:
-            response['result'] = task.info['result']
-    else:
-        # something went wrong in the background job
-        response = {'state': task.state,
-                    'status': str(task.info),  # this is the exception raised
-                    }
-
-    return jsonify(response)
+    return deals_with_info
 
 
 
@@ -122,209 +94,60 @@ def refreshstatus(task_id):
 @app.route('/index')
 # @login_required
 def index():
-    return render_template('index.html')
+
+    print 'loading index'
+    print 'about to get deals'
+    best_deals = get_best_deals()
+    ## TODO - this should be called once per day and put into the database
+    ##      - BUUUUUUT  JFDI
+    print 'done loading deals'
+
+    if len(best_deals) == 0:
+        return render_template('index.html',
+                               best_by_buybox=None,
+                               best_by_list=None,
+                               cheapest_overall=None
+                               )
+
+    print 'got best deals, sorting by list'
+    best_by_list = sorted(best_deals, key=lambda k:k['savings_vs_list'], reverse=True)[0]
+    print 'done sorting by list, sorting by buybox'
+    best_by_buybox = sorted(best_deals, key=lambda k:k['savings_vs_buybox'], reverse=True)[0]
+    print 'done sorting by buybox'
+    cheapest_overall = sorted(best_deals, key=lambda k:k['best_offer_price'])[0]
+    print 'done sorting by buybox'
+
+    return render_template('index.html',
+                           best_by_buybox=best_by_buybox,
+                           best_by_list=best_by_list,
+                           cheapest_overall=cheapest_overall
+                           )
 
 
-@app.route('/wishlist/<wishlist_id>')
-def wishlist(wishlist_id):
-    ## todo - it would be nice if this handled both internal wishlist IDs (autoincrementint ints) and amazon wishlist IDs
-    wishlist = Wishlist.query.filter_by(id=wishlist_id).first()
-    items = wishlist.items
-    variations = []
-    for i in items:
-        variations.extend(i.parent_item.items)
+# @app.route('/item/<item_id>')
+# def item(item_id):
 
-    if wishlist == None:
-        return 'No wishlist with ID ' + str(wishlist_id) +'.'
-    else:
-        return render_template('wishlist.html',
-                                wishlist=wishlist,
-                                items=items,
-                                variations=variations
-                                )
+#     item = Item.query.filter_by(id=int(item_id)).first()
+#     variations = item.parent_item.items
+
+#     # 404 if we don't have it
+#     if item is None:
+#         return render_template('404.html')
+
+#     return render_template('item.html', 
+#                             item=item,
+#                             variations=variations)
 
 
-@app.route('/wishlist/add', methods=['GET','POST'])
-@login_required
-def wishlist_add():
+@app.route('/item/all')
+def all_items():
 
-    form = WishlistForm()
-    if request.method == 'GET':
-        print 'in get wishlist/add'
-        return render_template('wishlist_add.html',
-                               form=form)
+    best_deals = get_best_deals()
 
-    if form.validate_on_submit():
+    best_deals_sorted = sorted(best_deals, key=lambda k:k['best_offer_price'])
 
-        wishlist_id = form.wishlistID.data
-
-        # make sure we have a wishlist ID
-        if wishlist_id is None or wishlist_id.strip() == '':
-            flash('No wishlist ID provided')
-            return redirect(url_for('wishlist_add'))
-
-        # make sure this is a real wishlist ID
-        if not is_usable_wishlist(wishlist_id):
-            flash("That's not a valid wishlist ID - check again!")
-            return redirect(url_for('wishlist_add'))
-
-        # get current user
-        u = User.query.filter_by(id=current_user.id).first()
-        # check to see if wishlist is already in database
-        existing_wishlist = Wishlist.query.filter_by(amazonWishlistID=wishlist_id).first()
-
-        if existing_wishlist:
-            u.wishlists.append(existing_wishlist)
-            db.session.add(u)
-            db.session.commit()
-            flash('This wishlist is already in our database - adding to your account')
-            redirect(url_for('wishlist_add'))
-
-        new_wishlist = Wishlist(amazonWishlistID=wishlist_id)
-
-        # get wishlist name from the Amazon page
-        new_wishlist.name = w.get_wishlist_name(wishlist_id)
-
-        db.session.add(new_wishlist)
-        db.session.commit()
-
-        # add the wishlist to the user
-        u.wishlists.append(new_wishlist)
-        db.session.add(u)
-        db.session.commit()
-
-        flash('Wishlist added!')
-        return redirect(url_for('wishlist_add'))
-
-
-@app.route('/user/<user_id>')
-def user(user_id):
-
-    # get all wishlists for user
-    u = User.query.filter_by(id=user_id).first()
-    if not u:
-        return render_template('404.html')
-
-    wishlists = u.wishlists
-
-    return render_template('user.html',
-                           wishlists=wishlists)
-
-
-@app.route('/item/<item_id>')
-def item(item_id):
-<<<<<<< HEAD
-
-    item = Item.query.filter_by(id=int(item_id)).first()
-    variations = item.parent_item.items
-=======
-    
-    item = Item.query.filter_by(id=int(item_id)).first()
-    variations = i.parent_item.items
->>>>>>> master
-
-    # 404 if we don't have it
-    if item is None:
-        return render_template('404.html')
-
-<<<<<<< HEAD
-    return render_template('item.html',
-=======
-    return render_template('item.html', 
->>>>>>> master
-                            item=item,
-                            variations=variations)
-
-
-
-
-################################################################################
-#
-#   User Stuff - Login/Logout/Register
-#
-################################################################################
-
-
-@app.route('/login', methods=['GET','POST'])
-def login():
-    form = LoginForm()
-
-    if request.method == 'GET':
-        return render_template('login.html',
-                               form=form)
-
-    if form.validate_on_submit():
-
-        user_email = form.user_email.data
-        password = form.password.data
-
-        if not user_exists(user_email):
-            # if the user doesn't exist
-            flash("this user doesn't exist!")
-            return redirect(url_for('login'))
-        else:
-            # see if the user is in the database
-            u = User.query.filter_by(email=user_email).first()
-            # see if the password hashes match
-            if u.verify_password(password):
-                # if it does, login with flask-login
-                login_user(u)
-                # and add the login state to the db
-                # is this overkill?
-                u.logged_in = True
-                db.session.add(u)
-                db.session.commit()
-                # redirect to next page or index
-                ## TODO - the docs say this needs to be verified. How to do that?
-                next = request.args.get('next')
-                return redirect(next or url_for('index'))
-            else:
-                flash('bad password!')
-                return redirect(url_for('login'))
-
-
-    flash('there was a login error')
-    return redirect(url_for('login'))
-
-
-@app.route('/logout')
-@login_required
-def logout():
-
-    # mark the user in the database as logged out
-    user_id = current_user.id
-    u = User.query.filter_by(id=user_id).first()
-    u.logged_in = False
-    db.session.add(u)
-    db.session.commit()
-    # logout from flask-login
-    logout_user()
-    flash("You've been logged out!")
-    return redirect(url_for('index'))
-
-
-@app.route('/register', methods=['GET','POST'])
-def register():
-    form = RegistrationForm()
-
-    if form.validate_on_submit():
-        email = form.email.data
-        password = form.password.data
-
-        if user_exists(email):
-            flash(Markup("there's already an account with this email address! Did you mean to <a href=\""+ url_for('login') + "\"> log in </a> ?"))
-            return redirect(url_for('register'))
-        # so let's create the user
-        new_user = User(email=email)
-        new_user.password = password
-        new_user.logged_in = True
-        db.session.add(new_user)
-        db.session.commit()
-        login_user(new_user)
-        return redirect(url_for('index'))
-
-    return(render_template('register.html',
-                           form=form))
+    return render_template('all_items.html',
+                            best_deals_sorted=best_deals_sorted)    
 
 
 
