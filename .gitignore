@@ -18,7 +18,6 @@ PLAN
 wishlist.db
 errors/
 *.ipynb
-*.txt
 
 # Distribution / packaging
 .Python

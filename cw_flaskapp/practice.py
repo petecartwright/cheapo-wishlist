@@ -13,9 +13,6 @@ logger = logging.getLogger(__name__)
 WISHLIST_ID = '1ZF0FXNHUY7IG'
 
 
-# TODO - add best deals to database
-
-
 def empty_database():
     deleted_items = Item.query.delete()
     logger.debug('deleted {0} items'.format(str(deleted_items)))
@@ -231,7 +228,6 @@ def refresh_item_data(item, amazon_api=None):
         db.session.add(new_item_image)
 
     return True
-
 
 
 def main():
