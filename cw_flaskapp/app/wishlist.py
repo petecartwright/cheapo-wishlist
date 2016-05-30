@@ -85,7 +85,7 @@ def get_items_from_wishlist(wishlistID):
     allItems = []
 
     # only pull one page for testing
-    # finalPage = 1
+    finalPage = 1
 
     # run through each page:
     for i in range(1, finalPage+1):
