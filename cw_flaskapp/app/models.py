@@ -65,3 +65,9 @@ class Offer(db.Model):
 
         return '<Offer {0} for item {1}>'.format(self.id, self.item.name)
 
+class RefreshTime(db.Model):
+    id                      = db.Column(db.Integer)
+    last_refreshed          = db.Column(db.DateTime)    
+
+    def __repr__(self):
+        return '<Last refreshed at {0}>'.format(str(last_refreshed))
