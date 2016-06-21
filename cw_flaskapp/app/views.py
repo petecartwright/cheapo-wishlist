@@ -139,7 +139,7 @@ def index():
 #                             variations=variations)
 
 
-@app.route('/item/all')
+@app.route('/all')
 def all_items():
 
     best_deals = get_best_deals()
