@@ -1,5 +1,5 @@
 from app import db
-from app.models import Item, ParentItem, Image, Offer
+from app.models import Item, ParentItem, Image, Offer, LastRefreshed
 from app.amazon_api import get_parent_ASIN, get_item_attributes, get_amazon_api, get_images, get_item_variations_from_parent, get_offers, error_handler
 from app.wishlist import get_items_from_wishlist, get_wishlist_name
 from datetime import datetime
@@ -229,6 +229,15 @@ def refresh_item_data(item, amazon_api=None):
 
     return True
 
+def update_last_refreshed():
+    ''' Remove the last_refreshed date and replace it with now
+    '''
+    deleted_last_refreshed = LastRefreshed.query.delete()
+    last = LastRefreshed()
+    last.deleted_last_refreshed = datetime.now()
+    db.session.add(last)
+    db.session.commit()
+
 
 def main():
 
@@ -316,6 +325,9 @@ def main():
  
     # now let's see what the best deals are!
     find_best_offer_per_wishlist_item()
+
+    update_last_refreshed()
+
 
 
 
