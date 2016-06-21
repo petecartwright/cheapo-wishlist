@@ -123,22 +123,6 @@ def index():
                            cheapest_overall=cheapest_overall
                            )
 
-
-# @app.route('/item/<item_id>')
-# def item(item_id):
-
-#     item = Item.query.filter_by(id=int(item_id)).first()
-#     variations = item.parent_item.items
-
-#     # 404 if we don't have it
-#     if item is None:
-#         return render_template('404.html')
-
-#     return render_template('item.html', 
-#                             item=item,
-#                             variations=variations)
-
-
 @app.route('/all')
 def all_items():
 
