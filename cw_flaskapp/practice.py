@@ -242,6 +242,7 @@ def update_last_refreshed():
 def main():
 
     # clear out all that old, boring data
+    # is this a terrible first step? yes. Should I fix this? yes.
     empty_database()
 
     amazon_api = get_amazon_api()
@@ -296,6 +297,7 @@ def main():
     # all all offers for each item
     all_items = Item.query.all()
     for i in all_items: 
+        print 'in the item refresh'
         refresh_item_data(item=i, amazon_api=amazon_api)
         # cant' get info on some - looks like maybe weapons?
         if i.name != None:
@@ -303,6 +305,7 @@ def main():
             # first remove existing offers from database
             item_offers = i.offers.all()
             for x in item_offers:
+                print 'trying to remove old offers'
                 db.session.delete(x)
                 db.session.commit()
             # can't get offers for Kindle Books    
