@@ -1,8 +1,15 @@
+/*
+Base Color : #88E1FB
+Accent Color : #85FCA9
+
+Dark Grey: #556D74
+Light Grey: #DBF3FA
+*/
 
 .thumbnail img { 
-    min-height:200px; 
-    height:200px; 
-    } // or whatever height you desire
+    min-height:150px; 
+    height:150px; 
+}
 
 
 .navbar-text {
@@ -10,6 +17,48 @@
     text-align: center;
 }
 
+.jumbotron {
+    background-color: #88E1FB;
+    margin-top: 30px;
+    padding-top: 40px;
+    padding-bottom: 180px;
+}
+
+.jumbotron h1 {
+    font-size: 6em;
+}
+
+.thumbnail {
+    margin-top: -175px;
+    border: none;
+    border-radius: 0;
+}
+
+
 .jumbotext {
     font-family: 'Lato', sans-serif;
+}
+
+.col-centered {
+    float: none;
+    margin: 0 auto;
+}
+
+
+.bottom-color {
+    margin-top:-500px;
+    width:100%;
+    height:50%;
+    background-color: #DBF3FA;
+    position: fixed;
+    bottom: 0;
+    z-index: -1;
+
+}
+
+.btn-primary {
+    background-color: #85FCA9;
+    color: #111111;
+    border: none;
+    border-radius: 0;
 }
