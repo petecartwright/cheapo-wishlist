@@ -13,17 +13,6 @@ logger = logging.getLogger(__name__)
 WISHLIST_ID = '1ZF0FXNHUY7IG'
 
 
-def empty_database():
-    deleted_items = Item.query.delete()
-    logger.debug('deleted {0} items'.format(str(deleted_items)))
-    deleted_images = Image.query.delete()
-    logger.debug('deleted {0} images'.format(str(deleted_images)))
-    deleted_offers = Offer.query.delete()
-    logger.debug('deleted {0} offers'.format(str(deleted_images)))
-    delete_parents = ParentItem.query.delete()
-    logger.debug('deleted {0} parents'.format(str(deleted_images)))
-    db.session.commit()
-
 
 def get_buybox_price(item):
     ''' take an Item object, return the buybox price and offer if one exists.
@@ -239,11 +228,28 @@ def update_last_refreshed():
     db.session.commit()
 
 
-def main():
+def remove_old_data():
+    ''' Delete everything from the database that's flagged as live_data == True '''
+    deleted_items = Item.query.filter(Item.live_data==True).delete()
+    logger.debug('deleted {0} items'.format(str(deleted_items)))
+    deleted_images = Image.query.filter(Image.live_data==True).delete()
+    logger.debug('deleted {0} images'.format(str(deleted_images)))
+    deleted_offers = Offer.query.filter(Offer.live_data==True).delete()
+    logger.debug('deleted {0} offers'.format(str(deleted_images)))
+    delete_parents = ParentItem.query.filter(ParentItem.live_data==True).delete()
+    logger.debug('deleted {0} parents'.format(str(deleted_images)))
+    db.session.commit()
 
-    # clear out all that old, boring data
-    # is this a terrible first step? yes. Should I fix this? yes.
-    empty_database()
+
+def set_live_data_flag():
+    
+    updated_items = Item.query.filter().update(dict(live_data=True))
+    updated_parents = ParentItem.query.filter().update(dict(live_data=True))
+    updated_offers = Offer.query.filter().update(dict(live_data=True))
+    updated_images = Image.query.filter().update(dict(live_data=True))
+
+
+def main():
 
     amazon_api = get_amazon_api()
 
@@ -252,18 +258,22 @@ def main():
     # add all of the wishlist items to the database
     add_wishlist_items_to_db(wishlist_items=wishlist_items)
 
+    # we're using a live_data flag to indicate which are live on the site and which aren't
+    # everything we're updating won't have a live data flag until the end, where we delete
+    # everything with the live_data flag and then update the new stuff
 
     # now that all of the base items are in the wishlist, get all of the parent items
-    all_items = Item.query.all()
+    all_items = Item.query.filter(Item.live_data==False).all()
     for i in all_items:
         print 'getting parent for {0}'.format(i.ASIN)
         item_parent_ASIN = get_parent_ASIN(ASIN=i.ASIN, amazon_api=amazon_api)
         print 'got parent'
         # if this parent doesn't exist, create it
-        parent = ParentItem.query.filter_by(parent_ASIN=item_parent_ASIN).first()
+        parent = ParentItem.query.filter_by(parent_ASIN=item_parent_ASIN, live_data=False).first()
         if parent is None:
             print "parent doesn't exist, creating"
             parent = ParentItem(parent_ASIN=item_parent_ASIN)
+            parent.live_data = False
             db.session.add(parent)
             db.session.commit()
         # add the parent to the item
@@ -272,7 +282,7 @@ def main():
         db.session.commit()     
 
     # from that list of parents, get all variations
-    all_parents = ParentItem.query.all()
+    all_parents = ParentItem.query.filter(Item.live_data==False).all()
     for p in all_parents:
         # get a list of all ASINS under that parent
         print 'getting variations for {0}'.format(p.parent_ASIN)
@@ -330,6 +340,10 @@ def main():
     find_best_offer_per_wishlist_item()
 
     update_last_refreshed()
+
+    remove_old_data()
+
+    set_live_data_flag()
 
 
 

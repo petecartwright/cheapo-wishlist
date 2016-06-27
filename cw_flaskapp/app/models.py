@@ -5,6 +5,7 @@ class ParentItem(db.Model):
     id                      = db.Column(db.Integer, primary_key=True)
     parent_ASIN             = db.Column(db.String(40))
     items                   = db.relationship('Item', backref='parent_item', lazy='dynamic')
+    live_data               = db.Column(db.Boolean, default=False)
 
 
 class Item(db.Model):
@@ -19,7 +20,8 @@ class Item(db.Model):
     images                  = db.relationship('Image', backref='item', lazy='dynamic')
     offers                  = db.relationship('Offer', backref='item', lazy='dynamic')
     parent_id               = db.Column(db.Integer, db.ForeignKey('parent_item.id'))
-    is_on_wishlist          = db.Column(db.Boolean)
+    is_on_wishlist          = db.Column(db.Boolean, default=False)
+    live_data               = db.Column(db.Boolean, default=False)
 
     def __init__(self, ASIN, parent_item=None):
         self.ASIN = ASIN
@@ -44,6 +46,7 @@ class Image(db.Model):
     largeHeight     = db.Column(db.Integer)
     largeWidth      = db.Column(db.Integer)
     item_id         = db.Column(db.Integer, db.ForeignKey('item.id'))
+    live_data       = db.Column(db.Boolean, default=False)
 
     def __repr__(self):
         return '<Image %r>' % (self.id)
@@ -59,7 +62,8 @@ class Offer(db.Model):
     availability            = db.Column(db.String(200))
     item_id                 = db.Column(db.Integer, db.ForeignKey('item.id'))
     wishlist_item_id        = db.Column(db.Integer)
-    best_offer              = db.Column(db.Boolean)
+    best_offer              = db.Column(db.Boolean, default=False)
+    live_data               = db.Column(db.Boolean, default=False)
     
     def __repr__(self):
 
