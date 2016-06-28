@@ -345,8 +345,8 @@ def main():
 
     set_live_data_flag()
 
-
-
+    print 'Finished run at {0}'.format(datetime.now().strftime('%H:%M %Y-%m-%d'))
+    logging.info('Finished run at {0}'.format(datetime.now().strftime('%H:%M %Y-%m-%d')))
 
 
 
