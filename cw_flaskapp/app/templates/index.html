@@ -19,14 +19,15 @@
       </div>
     </div>
 
-    <div class='container text-center'>
-        <div class='row'>
+    <div class='container text-center thumbs'>
+        
+            <div class='col-md-1'></div>
             {% if best_by_buybox %}
-            <div class='col-md-6'>
+            <div class='col-md-4'>
                 <div class='thumbnail'>
+                    <h2>Biggest Savings</h2>
                     <img src="{{ best_by_buybox['wishlist_item'].images.all()[0].mediumURL }}" class="img-responsive">
                     <div class="caption">
-                        <h2>Biggest $aving$ vs Amazon</h2>
                         <h4>{{ best_by_buybox['wishlist_item'].name }}</h4>
                         <p><a href="{{ best_by_buybox['wishlist_item'].URL }}" class="btn btn-primary btn-block" role="button">Buy THIS For Pete</a></p>
                             Get it for just {{ "${:,.2f}".format(best_by_buybox['best_offer_price']/100) }}<br />
@@ -36,13 +37,13 @@
                 </div>
             </div>
             {% endif %}
-
+            <div class='col-md-2'></div>
             {% if cheapest_overall %}
-            <div class='col-md-6'>
+            <div class='col-md-4'>
                 <div class='thumbnail'>
+                    <h2>Cheapest</h2>
                     <img src="{{ cheapest_overall['wishlist_item'].images.all()[0].mediumURL }}">
                     <div class="caption">
-                        <h2>¢heapest Overall</h2>
                         <h4>{{ cheapest_overall['wishlist_item'].name }}</h4>
                         <p><a href="{{ cheapest_overall['wishlist_item'].URL }}" class="btn btn-primary btn-block" role="button">Buy THIS For Pete</a></p>
                             Get it for just {{ "${:,.2f}".format(cheapest_overall['best_offer_price']/100) }}<br />
@@ -52,9 +53,12 @@
                 </div>
             </div>
             {% endif %}
-
-        </div>
+            <div class='col-md-1'></div>
     </div>
+
+    <div class='bottom-color'></div>
+
+
 </body>
 {{ super() }}
 {% endblock %}

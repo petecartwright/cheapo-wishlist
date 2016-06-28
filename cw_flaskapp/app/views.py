@@ -41,12 +41,12 @@ def get_best_deals():
     ''' look at all of the items and offers in the wishlist, then return a dict with the best deal per item
     '''
 
-    all_best_deals = Offer.query.filter(Offer.best_offer==True).all()
+    all_best_deals = Offer.query.filter(Offer.live_data==True).filter(Offer.best_offer==True).all()
 
     # get all of the WISHLIST items associated with these deals
     deals_with_info = []
     for deal in all_best_deals:
-        item = Item.query.filter(Item.id==deal.wishlist_item_id).first()
+        item = Item.query.filter(Item.live_data==True).filter(Item.id==deal.wishlist_item_id).first()
         buybox_price = get_buybox_price(item) or 0
         list_price = item.list_price_amount or 0
         main_item_url = item.URL
@@ -98,8 +98,7 @@ def index():
     print 'loading index'
     print 'about to get deals'
     best_deals = get_best_deals()
-    ## TODO - this should be called once per day and put into the database
-    ##      - BUUUUUUT  JFDI
+    
     print 'done loading deals'
 
     if len(best_deals) == 0:
@@ -150,5 +149,6 @@ def not_found_error(error):
 
 @app.errorhandler(500)
 def internal_error(error):
+    print error
     db.session.rollback()
     return render_template('500.html'), 500
