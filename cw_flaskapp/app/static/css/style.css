@@ -6,6 +6,13 @@ Dark Grey: #556D74
 Light Grey: #DBF3FA
 */
 
+.thumbnail {
+    margin-top: -175px;
+    border: none;
+    border-radius: 0;
+    box-shadow: 10px 10px 50px -5px rgba(85,109,116,1);
+}
+
 .thumbnail img { 
     min-height:150px; 
     height:150px; 
@@ -28,11 +35,6 @@ Light Grey: #DBF3FA
     font-size: 6em;
 }
 
-.thumbnail {
-    margin-top: -175px;
-    border: none;
-    border-radius: 0;
-}
 
 
 .jumbotext {
@@ -43,7 +45,6 @@ Light Grey: #DBF3FA
     float: none;
     margin: 0 auto;
 }
-
 
 .bottom-color {
     margin-top:-500px;
