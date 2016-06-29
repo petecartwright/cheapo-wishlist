@@ -247,7 +247,7 @@ def set_live_data_flag():
     updated_parents = ParentItem.query.filter().update(dict(live_data=True))
     updated_offers = Offer.query.filter().update(dict(live_data=True))
     updated_images = Image.query.filter().update(dict(live_data=True))
-
+    db.session.commit()
 
 def main():
 
