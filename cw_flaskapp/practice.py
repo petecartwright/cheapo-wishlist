@@ -6,7 +6,9 @@ from datetime import datetime
 
 import logging
 
-logging.basicConfig(filename='amazon_log.txt', level=logging.DEBUG)
+FORMAT = '%(asctime)-15s %(message)s'
+
+logging.basicConfig(filename='amazon_log.txt', level=logging.DEBUG, format=FORMAT)
 
 logger = logging.getLogger(__name__)
 
@@ -249,6 +251,7 @@ def set_live_data_flag():
     updated_images = Image.query.filter().update(dict(live_data=True))
     db.session.commit()
 
+
 def main():
 
     amazon_api = get_amazon_api()
@@ -305,7 +308,7 @@ def main():
 
     # get attributes (name, price, URL, etc) for all items
     # all all offers for each item
-    all_items = Item.query.all()
+    all_items = Item.query.filter(Item.live_data==False).all()
     for i in all_items: 
         print 'in the item refresh'
         refresh_item_data(item=i, amazon_api=amazon_api)
@@ -333,6 +336,7 @@ def main():
                     new_offer.prime_eligible = o['prime_eligible']
                     new_offer.availability = str(o['availability'])
                     new_offer.item_id = o['item_id']
+                    new_offer.item = i
                     db.session.add(new_offer)
                     db.session.commit()
  
