@@ -11,7 +11,7 @@
 
 {% block content %}
 <body>
-
+    <div class='what-is-this'>what is this</div>
     <div class="jumbotron">
       <div class="container text-center jumbotext">
         <h1>WHAT SHOULD I <br/> BUY PETE TODAY? </h1>
@@ -26,12 +26,11 @@
             <div class='col-md-4'>
                 <div class='thumbnail'>
                     <h2>Biggest Savings</h2>
+                    <a href="{{ best_by_buybox['wishlist_item'].URL }}" class="btn btn-primary btn-block buy-button" role="button">{{ "${:,.2f}".format(best_by_buybox['best_offer_price']/100) }}</a>
                     <img src="{{ best_by_buybox['wishlist_item'].images.all()[0].mediumURL }}" class="img-responsive">
                     <div class="caption">
                         <h4>{{ best_by_buybox['wishlist_item'].name }}</h4>
-                        <p><a href="{{ best_by_buybox['wishlist_item'].URL }}" class="btn btn-primary btn-block" role="button">Buy THIS For Pete</a></p>
-                            Get it for just {{ "${:,.2f}".format(best_by_buybox['best_offer_price']/100) }}<br />
-                            For a savings of {{ "${:,.2f}".format(best_by_buybox['savings_vs_buybox']/100) }} over Amazon!
+                            Save {{ "${:,.2f}".format(best_by_buybox['savings_vs_buybox']/100) }}!
                         </p>
                     </div>
                 </div>
@@ -42,12 +41,11 @@
             <div class='col-md-4'>
                 <div class='thumbnail'>
                     <h2>Cheapest</h2>
+                    <p><a href="{{ cheapest_overall['wishlist_item'].URL }}" class="btn btn-primary btn-block buy-button" role="button">{{ "${:,.2f}".format(cheapest_overall['best_offer_price']/100) }}</a></p>
                     <img src="{{ cheapest_overall['wishlist_item'].images.all()[0].mediumURL }}">
                     <div class="caption">
                         <h4>{{ cheapest_overall['wishlist_item'].name }}</h4>
-                        <p><a href="{{ cheapest_overall['wishlist_item'].URL }}" class="btn btn-primary btn-block" role="button">Buy THIS For Pete</a></p>
-                            Get it for just {{ "${:,.2f}".format(cheapest_overall['best_offer_price']/100) }}<br />
-                            For a savings of {{ "${:,.2f}".format(cheapest_overall['savings_vs_list']/100)  }} over list price!
+                            Save {{ "${:,.2f}".format(cheapest_overall['savings_vs_buybox']/100)  }}!
                         </p>
                     </div>
                 </div>
@@ -58,6 +56,7 @@
 
     <div class='bottom-color'></div>
 
+    <div class='footer'><a href='{{ url_for('all_items') }}'>See all...</a></div>
 
 </body>
 {{ super() }}

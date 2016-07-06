@@ -11,6 +11,7 @@ Light Grey: #DBF3FA
     border: none;
     border-radius: 0;
     box-shadow: 10px 10px 50px -5px rgba(85,109,116,1);
+    font-family: 'Merriweather Sans', sans-serif;
 }
 
 .thumbnail img { 
@@ -18,11 +19,10 @@ Light Grey: #DBF3FA
     height:150px; 
 }
 
-
-.navbar-text {
-    width:100%;
-    text-align: center;
+.what-is-this {
+    text-align: right;
 }
+
 
 .jumbotron {
     background-color: #88E1FB;
@@ -36,9 +36,15 @@ Light Grey: #DBF3FA
 }
 
 
-
 .jumbotext {
     font-family: 'Lato', sans-serif;
+}
+
+.buy-button {
+
+    color: #556D74;
+    font-size: 1.5em;
+
 }
 
 .col-centered {
@@ -62,4 +68,11 @@ Light Grey: #DBF3FA
     color: #111111;
     border: none;
     border-radius: 0;
+}
+
+.footer {
+    position: fixed;
+    bottom: 0;
+    width: 100%;
+    text-align: center;
 }

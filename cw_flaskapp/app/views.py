@@ -9,7 +9,6 @@ import wishlist as w
 
 FORMAT = '%(asctime)-15s %(message)s'
 
-
 logging.basicConfig(filename='best_deals.txt', level=logging.DEBUG, format=FORMAT)
 
 logger = logging.getLogger(__name__)
