@@ -225,7 +225,7 @@ def update_last_refreshed():
     '''
     deleted_last_refreshed = LastRefreshed.query.delete()
     last = LastRefreshed()
-    last.deleted_last_refreshed = datetime.now()
+    last.last_refreshed = datetime.now()
     db.session.add(last)
     db.session.commit()
 
