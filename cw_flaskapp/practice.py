@@ -276,7 +276,6 @@ def main():
         if parent is None:
             print "parent doesn't exist, creating"
             parent = ParentItem(parent_ASIN=item_parent_ASIN)
-            parent.live_data = False
             db.session.add(parent)
             db.session.commit()
         # add the parent to the item
