@@ -22,15 +22,15 @@
     <div class='container text-center thumbs'>
         
             <div class='col-md-1'></div>
-            {% if best_by_buybox %}
+            {% if best_by_list %}
             <div class='col-md-4'>
                 <div class='thumbnail'>
                     <h2>Biggest Savings</h2>
-                    <a href="{{ best_by_buybox['wishlist_item'].URL }}" class="btn btn-primary btn-block buy-button" role="button">{{ "${:,.2f}".format(best_by_buybox['best_offer_price']/100) }}</a>
-                    <img src="{{ best_by_buybox['wishlist_item'].images.all()[0].mediumURL }}" class="img-responsive">
+                    <a href="{{ best_by_list['wishlist_item'].URL }}" class="btn btn-primary btn-block buy-button" role="button">{{ "${:,.2f}".format(best_by_list['best_offer_price']/100) }}</a>
+                    <img src="{{ best_by_list['wishlist_item'].images.all()[0].mediumURL }}" class="img-responsive">
                     <div class="caption">
-                        <h4>{{ best_by_buybox['wishlist_item'].name }}</h4>
-                            Save {{ "${:,.2f}".format(best_by_buybox['savings_vs_buybox']/100) }}!
+                        <h4>{{ best_by_list['wishlist_item'].name }}</h4>
+                            Save {{ "${:,.2f}".format(best_by_list['savings_vs_list']/100) }}!
                         </p>
                     </div>
                 </div>
