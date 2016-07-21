@@ -34,7 +34,7 @@ def find_best_offer_per_wishlist_item():
     ''' look at all of the items and offers in the wishlist, then flag one offer per item as the best 
     '''
 
-    all_wishlist_items = Item.query.filter(Item.is_on_wishlist==True).filter(Item.live_data==True).all()
+    all_wishlist_items = Item.query.filter(Item.is_on_wishlist==True).filter(Item.live_data==False).all()
 
     for item in all_wishlist_items:
 
