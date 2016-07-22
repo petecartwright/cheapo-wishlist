@@ -79,14 +79,17 @@ def get_items_from_wishlist(wishlistID):
         # get the number of pages on the wishlist. in the a-pagination div, there's a list of pages to go to.
         # the second to last is the last page of the wishlist. (the last one is "next")
         finalPage = int(wishlistFirstPage.find(class_="a-pagination").findAll('li')[-2].text)
+        print 'wishlist has {0} pages'.format(finalPage)
     else:
+        print 'wishlist only has 1 page'
         finalPage = 1
 
     allItems = []
 
     # only pull one page for testing
-    finalPage = 1
+    # finalPage = 1
 
+    print 'about to check all pages - have a final page of {0}'.format(str(finalPage))
     # run through each page:
     for i in range(1, finalPage+1):
         allItems += get_items_from_wishlist_page(wishlistID=wishlistID, pageNumber=i)
