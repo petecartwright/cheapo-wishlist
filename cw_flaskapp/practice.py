@@ -75,7 +75,7 @@ def add_wishlist_items_to_db( wishlist_items):
     for i in wishlist_items:
         print 'on item ' + i['ASIN']
         # check to see if we already have it, if not, add it to the database
-        item_to_add = Item.query.filter_by(ASIN=i['ASIN']).first()
+        item_to_add = Item.query.filter_by(ASIN=i['ASIN']).filter(Item.live_data==False).first()
         
         if item_to_add is None:
             print "{0} doesn't exist, creating it".format(i['ASIN'])
