@@ -4,28 +4,13 @@ import re
 from time import sleep
 
 BASE_URL = 'http://www.amazon.com/gp/registry/wishlist/'
-
+PETES_WISHLIST_ID = '1ZF0FXNHUY7IG'
 
 #############################################
 #
 #   Quickie Functions
 #
 #############################################
-
-
-def get_wishlist_name(wishlistID):
-    """ Take an wishlistID and return the name of the wishlist (ex - "Pete's Wishlist" or "Christmas List" or "Kitchen Stuff I Want", etc)
-    """
-    print 'getting wishlist name for ' + str(wishlistID)
-    r = requests.get(BASE_URL+'/'+wishlistID)
-    wishlistPage = BeautifulSoup(r.content, "html.parser")
-
-    try:
-        name = wishlistPage.find(id="wl-list-info").find('h1').text.strip()
-        print 'found name - ' + str(name)
-        return name
-    except:
-        return 'no name found'
 
 
 def get_items_from_wishlist_page(wishlistID, pageNumber):
@@ -96,7 +81,7 @@ def get_items_from_wishlist(wishlistID):
 
 
 def main():
-    items = get_items_from_wishlist('1ZF0FXNHUY7IG')
+    items = get_items_from_wishlist(PETES_WISHLIST_ID)
     for i in items:
         print i
 
