@@ -23,7 +23,12 @@ def get_items_from_wishlist_page(wishlistID, pageNumber):
 
     """
     print 'getting items from page ' + str(pageNumber)
-    r = requests.get(BASE_URL+'/'+wishlistID+'/?page='+str(pageNumber))
+    page_url = "{0}/{1}/?page={2}".format(BASE_URL, wishlistID, str(pageNumber))
+    headers = {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 6.1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/41.0.2228.0 Safari/537.36',
+    }
+    r = requests.get(page_url, headers=headers)
+
     wishListPage = BeautifulSoup(r.content, "html.parser")
 
     # for each product on this page:
@@ -52,8 +57,11 @@ def get_items_from_wishlist(wishlistID):
     """ Takes a wishlist ID, validates that it's usable, gets a list of all items on it
     """
     # connect to wishlist page
-    wishlistURL = BASE_URL+wishlistID
-    r = requests.get(wishlistURL)
+    wishlistURL = BASE_URL + wishlistID
+    headers = {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 6.1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/41.0.2228.0 Safari/537.36',
+    }
+    r = requests.get(wishlistURL, headers=headers)
     wishlistFirstPage = BeautifulSoup(r.content, "html.parser")
 
     if wishlistFirstPage.find(class_="a-pagination"):
