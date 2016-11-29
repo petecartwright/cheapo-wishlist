@@ -1,5 +1,5 @@
 from app import db
-from app.models import Item, ParentItem, Image, Offer, LastRefreshed, Variation
+from app.models import Item, ParentItem, Image, Offer, LastRefreshed
 from app.amazon_api import get_parent_ASIN, get_item_attributes, get_amazon_api, get_images, get_item_variations_from_parent, get_offers
 from app.wishlist import get_items_from_wishlist
 from datetime import datetime

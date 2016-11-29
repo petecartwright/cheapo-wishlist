@@ -17,7 +17,7 @@ logger = logging.getLogger(__name__)
 objectify.enable_recursive_str()
 
 
-def error_handler(err):
+def api_error_handler(err):
     ex = err['exception']
     url = err['api_url']
     logger.debug('{0} error getting {0} '.format(type(ex), url))
@@ -40,7 +40,7 @@ def debug_print_lxml(to_print):
 
 
 def get_amazon_api():
-    amazon_api = bottlenose.Amazon(AMAZON_KEY_ID, AMAZON_SECRET_KEY, AMAZON_AFFILIATE_ID, MaxQPS=0.9, ErrorHandler=error_handler)
+    amazon_api = bottlenose.Amazon(AMAZON_KEY_ID, AMAZON_SECRET_KEY, AMAZON_AFFILIATE_ID, MaxQPS=0.9, ErrorHandler=api_error_handler)
     return amazon_api
 
 
