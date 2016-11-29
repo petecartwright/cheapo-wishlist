@@ -1,9 +1,6 @@
 from bs4 import BeautifulSoup
 import requests
 import re
-import sys
-import random
-import datetime
 from time import sleep
 
 BASE_URL = 'http://www.amazon.com/gp/registry/wishlist/'
@@ -57,10 +54,10 @@ def get_items_from_wishlist_page(wishlistID, pageNumber):
             if item.find('This title will be released'):
                 print "Not yet out, won't add to DB"
                 continue
-            itemURL = 'http://www.amazon.com' + item.find(class_='a-link-normal')["href"] .split("?",1)[0]
-            date_added = item.find(class_='dateAddedText').text.strip().split('\n')[0].replace("Added ","")
+            itemURL = 'http://www.amazon.com' + item.find(class_='a-link-normal')["href"] .split("?", 1)[0]
+            date_added = item.find(class_='dateAddedText').text.strip().split('\n')[0].replace("Added ", "")
             ASIN = itemURL.split("/")[-1]
-            itemList.append({"ASIN":ASIN,
+            itemList.append({"ASIN": ASIN,
                              "date_added": date_added
                              })
         return itemList
