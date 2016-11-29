@@ -1,34 +1,16 @@
 from bs4 import BeautifulSoup
 import requests
 import re
-import sys
-import random
-import datetime
 from time import sleep
 
 BASE_URL = 'http://www.amazon.com/gp/registry/wishlist/'
-
+PETES_WISHLIST_ID = '1ZF0FXNHUY7IG'
 
 #############################################
 #
 #   Quickie Functions
 #
 #############################################
-
-
-def get_wishlist_name(wishlistID):
-    """ Take an wishlistID and return the name of the wishlist (ex - "Pete's Wishlist" or "Christmas List" or "Kitchen Stuff I Want", etc)
-    """
-    print 'getting wishlist name for ' + str(wishlistID)
-    r = requests.get(BASE_URL+'/'+wishlistID)
-    wishlistPage = BeautifulSoup(r.content, "html.parser")
-
-    try:
-        name = wishlistPage.find(id="wl-list-info").find('h1').text.strip()
-        print 'found name - ' + str(name)
-        return name
-    except:
-        return 'no name found'
 
 
 def get_items_from_wishlist_page(wishlistID, pageNumber):
@@ -57,10 +39,10 @@ def get_items_from_wishlist_page(wishlistID, pageNumber):
             if item.find('This title will be released'):
                 print "Not yet out, won't add to DB"
                 continue
-            itemURL = 'http://www.amazon.com' + item.find(class_='a-link-normal')["href"] .split("?",1)[0]
-            date_added = item.find(class_='dateAddedText').text.strip().split('\n')[0].replace("Added ","")
+            itemURL = 'http://www.amazon.com' + item.find(class_='a-link-normal')["href"] .split("?", 1)[0]
+            date_added = item.find(class_='dateAddedText').text.strip().split('\n')[0].replace("Added ", "")
             ASIN = itemURL.split("/")[-1]
-            itemList.append({"ASIN":ASIN,
+            itemList.append({"ASIN": ASIN,
                              "date_added": date_added
                              })
         return itemList
@@ -99,7 +81,7 @@ def get_items_from_wishlist(wishlistID):
 
 
 def main():
-    items = get_items_from_wishlist('1ZF0FXNHUY7IG')
+    items = get_items_from_wishlist(PETES_WISHLIST_ID)
     for i in items:
         print i
 

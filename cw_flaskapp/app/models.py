@@ -64,14 +64,15 @@ class Offer(db.Model):
     wishlist_item_id        = db.Column(db.Integer)
     best_offer              = db.Column(db.Boolean, default=False)
     live_data               = db.Column(db.Boolean, default=False)
-    
+
     def __repr__(self):
 
         return '<Offer {0} for item {1}>'.format(self.id, self.item.name)
 
+
 class LastRefreshed(db.Model):
     id                      = db.Column(db.Integer, primary_key=True)
-    last_refreshed          = db.Column(db.DateTime)    
+    last_refreshed          = db.Column(db.DateTime)
 
     def __repr__(self):
-        return '<Last refreshed at {0}>'.format(str(last_refreshed))
+        return '<Last refreshed at {0}>'.format(str(self.last_refreshed))

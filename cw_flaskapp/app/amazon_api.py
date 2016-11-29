@@ -17,7 +17,7 @@ logger = logging.getLogger(__name__)
 objectify.enable_recursive_str()
 
 
-def error_handler(err):
+def api_error_handler(err):
     ex = err['exception']
     url = err['api_url']
     logger.debug('{0} error getting {0} '.format(type(ex), url))
@@ -38,8 +38,9 @@ def debug_print_lxml(to_print):
     with open('debug.txt', 'w') as f:
         f.write(str(to_print))
 
+
 def get_amazon_api():
-    amazon_api = bottlenose.Amazon(AMAZON_KEY_ID, AMAZON_SECRET_KEY, AMAZON_AFFILIATE_ID, MaxQPS=0.9, ErrorHandler=error_handler)
+    amazon_api = bottlenose.Amazon(AMAZON_KEY_ID, AMAZON_SECRET_KEY, AMAZON_AFFILIATE_ID, MaxQPS=0.9, ErrorHandler=api_error_handler)
     return amazon_api
 
 
@@ -104,7 +105,7 @@ def get_book_variations_from_page(ASIN, amazon_api=None, page_number=1):
                                                     ResponseGroup="RelatedItems",
                                                     Condition='All',
                                                     RelationshipType='AuthorityTitle',
-                                                    RelatedItemPage=page_number ))
+                                                    RelatedItemPage=page_number))
     root = objectify.fromstring(response)
     relatedItems = root.Items.Item.RelatedItems
     variations_on_page = []
@@ -128,25 +129,25 @@ def get_item_variations_from_parent(parentASIN, amazon_api=None):
     # know how to handle this product
     product_group = get_product_group(ASIN=parentASIN, amazon_api=amazon_api)
 
-    if product_group in ('Book','Authority Non Buyable'):
+    if product_group in ('Book', 'Authority Non Buyable'):
         response = clean_response(amazon_api.ItemLookup(ItemId=parentASIN,
-                                                    ResponseGroup="RelatedItems",
-                                                    Condition='All',
-                                                    RelationshipType='AuthorityTitle'))
+                                                        ResponseGroup="RelatedItems",
+                                                        Condition='All',
+                                                        RelationshipType='AuthorityTitle'))
         root = objectify.fromstring(response)
         if hasattr(root.Items.Item, 'RelatedItems'):
             relatedItems = root.Items.Item.RelatedItems
             numberOfPages = relatedItems.RelatedItemPageCount
-            variationASINs= []
-            for i in range(1,numberOfPages+1):
+            variationASINs = []
+            for i in range(1, numberOfPages + 1):
                 variationASINs.extend(get_book_variations_from_page(ASIN=parentASIN, page_number=i))
         else:
             variationASINs = [parentASIN]
 
     else:
         response = clean_response(amazon_api.ItemLookup(ItemId=parentASIN,
-                                                    ResponseGroup="Variations",
-                                                    Condition='All' ))
+                                                        ResponseGroup="Variations",
+                                                        Condition='All'))
         root = objectify.fromstring(response)
 
         variationASINs = []
@@ -173,7 +174,7 @@ def get_product_group(ASIN, amazon_api=None):
     if amazon_api is None:
         amazon_api = get_amazon_api()
 
-    response = clean_response(amazon_api.ItemLookup(ItemId=ASIN, ResponseGroup="ItemAttributes", Condition='All' ))
+    response = clean_response(amazon_api.ItemLookup(ItemId=ASIN, ResponseGroup="ItemAttributes", Condition='All'))
     item = objectify.fromstring(response)
 
     try:
@@ -215,20 +216,20 @@ def get_offers(item, amazon_api=None):
             buybox_prime_eligible = False
 
         offers.append({'condition': buybox_condition,
-                    'offer_source': 'Buybox',
-                    'offer_price_amount': buybox_price_amount,
-                    'offer_price_formatted': buybox_price_formatted,
-                    'prime_eligible': buybox_prime_eligible,
-                    'availability': buybox_availability,
-                    'item_id': item_id
-                    })
+                       'offer_source': 'Buybox',
+                       'offer_price_amount': buybox_price_amount,
+                       'offer_price_formatted': buybox_price_formatted,
+                       'prime_eligible': buybox_prime_eligible,
+                       'availability': buybox_availability,
+                       'item_id': item_id
+                       })
     else:
         print 'No buybox for ASIN {0}, name {1}'.format(item.ASIN, item.name)
 
     print 'after buybox, offers has {0} elements'.format(str(len(offers)))
     # then get the best third-party offers
 
-    tp_response = clean_response(amazon_api.ItemLookup(ItemId=ASIN, ResponseGroup="Offers", Condition='All' ))
+    tp_response = clean_response(amazon_api.ItemLookup(ItemId=ASIN, ResponseGroup="Offers", Condition='All'))
     tp_root = objectify.fromstring(tp_response)
 
     offerList = tp_root.Items.Item.Offers.iterchildren(tag='Offer')
@@ -247,13 +248,13 @@ def get_offers(item, amazon_api=None):
             availability = 'Not sure!'
 
         offer = {'condition': condition,
-                'offer_source': 'Other Sellers',
-                'offer_price_amount': offer_price_amount,
-                'offer_price_formatted': offer_price_formatted,
-                'prime_eligible': prime_eligible,
-                'availability': availability,
-                'item_id': item_id
-                }
+                 'offer_source': 'Other Sellers',
+                 'offer_price_amount': offer_price_amount,
+                 'offer_price_formatted': offer_price_formatted,
+                 'prime_eligible': prime_eligible,
+                 'availability': availability,
+                 'item_id': item_id
+                 }
         offers.append(offer)
 
     print 'after others, offers has {0} elements'.format(str(len(offers)))
@@ -270,7 +271,7 @@ def get_images(ASIN, amazon_api=None):
         amazon_api = get_amazon_api()
 
     try:
-        response = clean_response(amazon_api.ItemLookup(ItemId=ASIN, ResponseGroup="Images", Condition='All' ))
+        response = clean_response(amazon_api.ItemLookup(ItemId=ASIN, ResponseGroup="Images", Condition='All'))
     except Error, err:
         print err
         return {}
@@ -284,8 +285,8 @@ def get_images(ASIN, amazon_api=None):
     item = root.Items.Item
 
     smallImage = hasattr(item, 'SmallImage')
-    mediumImage = hasattr(item,'MediumImage')
-    largeImage = hasattr(item,'LargeImage')
+    mediumImage = hasattr(item, 'MediumImage')
+    largeImage = hasattr(item, 'LargeImage')
 
     # don't always get all three images, so populate what we have
     ## TODO: combine this code with the get_images_sizes() method
@@ -295,12 +296,12 @@ def get_images(ASIN, amazon_api=None):
         images['SmallImage'] = {"URL": item.SmallImage.URL,
                                 "Height": item.SmallImage.Height,
                                 "Width": item.SmallImage.Width
-                               }
+                                }
     if mediumImage:
         images['MediumImage'] = {"URL": item.MediumImage.URL,
                                  "Height": item.MediumImage.Height,
                                  "Width": item.MediumImage.Width
-                                }
+                                 }
     if largeImage:
         images['MediumImage'] = {"URL": item.LargeImage.URL,
                                  "Height": item.LargeImage.Height,
@@ -320,7 +321,7 @@ def check_for_valid_ASIN(ASIN, amazon_api=None):
 
     # if there are errors, check for the invalid param one
 
-    if hasattr(root.Items.Request,'Errors') and root.Items.Request.Errors.Error.Code == 'AWS.InvalidParameterValue':
+    if hasattr(root.Items.Request, 'Errors') and root.Items.Request.Errors.Error.Code == 'AWS.InvalidParameterValue':
         return False
     else:
         return True
@@ -356,7 +357,7 @@ def get_item_attributes(ASIN, amazon_api=None):
         listPriceAmount = str(item.ItemAttributes.ListPrice.Amount)
         listPriceFormatted = str(item.ItemAttributes.ListPrice.FormattedPrice)
     if hasattr(item.ItemAttributes, 'Title'):
-        title = str(item.ItemAttributes.Title.text.encode('ascii',errors='ignore')) # had some titles with non-breaking spaces in them. Annoying.
+        title = str(item.ItemAttributes.Title.text.encode('ascii', errors='ignore'))  # had some titles with non-breaking spaces in them. Annoying.
     if hasattr(item.ItemAttributes, 'ProductGroup'):
         product_group = str(item.ItemAttributes.ProductGroup)
 
