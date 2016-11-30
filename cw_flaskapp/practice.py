@@ -4,11 +4,14 @@ from app.amazon_api import get_parent_ASIN, get_item_attributes, get_amazon_api,
 from app.wishlist import get_items_from_wishlist
 from datetime import datetime
 
+import os
 import logging
 
 FORMAT = '%(asctime)-15s %(message)s'
 
-logging.basicConfig(filename='/home/pete/sites/wsibpt/cw_flaskapp/log/practice.txt', level=logging.DEBUG, format=FORMAT)
+current_folder = os.path.dirname(os.path.realpath(__file__))
+logfile = os.path.join(current_folder, 'app/log/practice.txt')
+logging.basicConfig(filename=logfile, level=logging.DEBUG, format=FORMAT)
 
 logger = logging.getLogger(__name__)
 

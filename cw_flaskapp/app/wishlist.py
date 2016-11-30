@@ -8,7 +8,8 @@ import logging
 
 FORMAT = '%(asctime)-15s %(message)s'
 current_folder = os.path.dirname(os.path.realpath(__file__))
-logging.basicConfig(filename='{0}/log/wishlist.txt'.format(current_folder), level=logging.DEBUG, format=FORMAT)
+logfile = os.path.join(current_folder, 'log/wishlist.txt')
+logging.basicConfig(filename=logfile, level=logging.DEBUG, format=FORMAT)
 logger = logging.getLogger(__name__)
 
 BASE_URL = 'http://www.amazon.com/gp/registry/wishlist/'
