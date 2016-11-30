@@ -8,7 +8,7 @@ import logging
 
 FORMAT = '%(asctime)-15s %(message)s'
 
-logging.basicConfig(filename='amazon_log.txt', level=logging.DEBUG, format=FORMAT)
+logging.basicConfig(filename='/home/pete/sites/wsibpt/cw_flaskapp/log/practice.txt', level=logging.DEBUG, format=FORMAT)
 
 logger = logging.getLogger(__name__)
 
@@ -237,6 +237,12 @@ def main():
 
     # scan the wishlist on Amazon's site
     wishlist_items = get_items_from_wishlist(WISHLIST_ID)
+
+    # if we didn't get anything back, just leave well enough alone for now
+    if len(wishlist_items) == 0:
+        logging.warning('Nothing returned from the last wishlist check - Exiting.')
+        return False
+
     # add all of the wishlist items to the database
     add_wishlist_items_to_db(wishlist_items=wishlist_items)
 
