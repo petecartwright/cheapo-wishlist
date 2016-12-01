@@ -10,8 +10,6 @@ FORMAT = '%(asctime)-15s %(message)s'
 current_folder = os.path.dirname(os.path.realpath(__file__))
 logfile = os.path.join(current_folder, 'log/wishlist.txt')
 logging.basicConfig(filename=logfile, level=logging.DEBUG, format=FORMAT)
-logger = logging.getLogger(__name__)
-
 BASE_URL = 'http://www.amazon.com/gp/registry/wishlist/'
 PETES_WISHLIST_ID = '1ZF0FXNHUY7IG'
 
@@ -39,9 +37,9 @@ def get_items_from_wishlist_page(wishlistID, pageNumber):
     r = requests.get(page_url, headers=headers)
 
     if r.status_code == 200:
-        logger.info('Successful connection to wishlist page {0}'.format(str(pageNumber)))
+        logging.info('Successful connection to wishlist page {0}'.format(str(pageNumber)))
     else:
-        logger.warning('Error connecting to wishlist page {0}. Status code {1}'.format(str(pageNumber), str(r.status)))
+        logging.warning('Error connecting to wishlist page {0}. Status code {1}'.format(str(pageNumber), str(r.status)))
 
     wishListPage = BeautifulSoup(r.content, "html.parser")
 
@@ -78,9 +76,9 @@ def get_items_from_wishlist(wishlistID):
     r = requests.get(wishlistURL, headers=headers)
 
     if r.status_code == 200:
-        logger.info('Successful connection to main wishlist page')
+        logging.info('Successful connection to main wishlist page')
     else:
-        logger.warning('Error connecting to main wishlist page')
+        logging.warning('Error connecting to main wishlist page')
 
     wishlistFirstPage = BeautifulSoup(r.content, "html.parser")
 

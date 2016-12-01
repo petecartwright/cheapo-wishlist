@@ -13,8 +13,6 @@ current_folder = os.path.dirname(os.path.realpath(__file__))
 logfile = os.path.join(current_folder, 'app/log/practice.txt')
 logging.basicConfig(filename=logfile, level=logging.DEBUG, format=FORMAT)
 
-logger = logging.getLogger(__name__)
-
 WISHLIST_ID = '1ZF0FXNHUY7IG'
 
 
@@ -215,13 +213,13 @@ def update_last_refreshed():
 def remove_old_data():
     ''' Delete everything from the database that's flagged as live_data == True '''
     deleted_items = Item.query.filter(Item.live_data==True).delete()
-    logger.debug('deleted {0} items'.format(str(deleted_items)))
+    logging.debug('deleted {0} items'.format(str(deleted_items)))
     deleted_images = Image.query.filter(Image.live_data==True).delete()
-    logger.debug('deleted {0} images'.format(str(deleted_images)))
+    logging.debug('deleted {0} images'.format(str(deleted_images)))
     deleted_offers = Offer.query.filter(Offer.live_data==True).delete()
-    logger.debug('deleted {0} offers'.format(str(deleted_images)))
+    logging.debug('deleted {0} offers'.format(str(deleted_images)))
     delete_parents = ParentItem.query.filter(ParentItem.live_data==True).delete()
-    logger.debug('deleted {0} parents'.format(str(deleted_images)))
+    logging.debug('deleted {0} parents'.format(str(deleted_images)))
     db.session.commit()
 
 
