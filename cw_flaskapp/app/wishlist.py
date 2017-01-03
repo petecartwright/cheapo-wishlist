@@ -28,7 +28,7 @@ def get_data_via_curl(url):
     curl_result = check_output(["curl", url])
     ##TODO - really need some error checking here
     return curl_result
-    
+
 
 def get_items_from_wishlist_page(wishlist_id, page_number):
     """ Take a wishlist ID and a page number, and return a list of all items on that page
@@ -43,7 +43,7 @@ def get_items_from_wishlist_page(wishlist_id, page_number):
     page_url = "{0}/{1}/?page={2}".format(BASE_URL, wishlist_id, str(page_number))
     html_data = get_data_via_curl(page_url)
 
-    wishlist_page = BeautifulSoup(r.content, "html.parser")
+    wishlist_page = BeautifulSoup(html_data, "html.parser")
 
     # for each product on this page:
         # get the name, URL, new price, prime status, used price
@@ -108,4 +108,4 @@ def main():
 
 if __name__ == "__main__":
     print logfile
-    #main()
+    main()
