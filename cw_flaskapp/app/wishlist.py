@@ -13,7 +13,7 @@ logfile = os.path.join(current_folder, 'log/wishlist.txt')
 logging.basicConfig(filename=logfile, level=logging.DEBUG, format=FORMAT)
 logger = logging.getLogger(__name__)
 
-BASE_URL = 'http://www.amazon.com/gp/registry/wishlist/'
+BASE_URL = 'https://www.amazon.com/gp/registry/wishlist/'
 PETES_WISHLIST_ID = '1ZF0FXNHUY7IG'
 
 #############################################
@@ -50,6 +50,7 @@ def get_items_from_wishlist_page(wishlist_id, page_number):
     item_list = []
     items_on_page = wishlist_page.findAll(id=re.compile('item_'))
     if len(items_on_page) == 0:
+        print 'no items found'
         return []
     else:
         # each item div in the list has an ID that starts with item_
