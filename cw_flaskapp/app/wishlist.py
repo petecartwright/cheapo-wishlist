@@ -84,9 +84,9 @@ def get_items_from_wishlist(wishlistID):
 
     wishlistFirstPage = BeautifulSoup(r.content, "html.parser")
 
-    if wishlistFirstPage.find(class_="a-pagination"):
+    if wishlistFirstPage.find('div', id="wishlistPagination"):
         #if we have multiple pages:
-        # get the number of pages on the wishlist. in the a-pagination div, there's a list of pages to go to.
+        # get the number of pages on the wishlist. in the pagination div, there's a list of pages to go to.
         # the second to last is the last page of the wishlist. (the last one is "next")
         finalPage = int(wishlistFirstPage.find('div', id="wishlistPagination").findAll('li')[-2].text)
         print 'wishlist has {0} pages'.format(finalPage)
