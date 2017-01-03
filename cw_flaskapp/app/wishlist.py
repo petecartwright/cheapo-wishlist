@@ -28,6 +28,7 @@ def get_data_via_curl(url):
     curl_result = check_output(["curl", url])
     ##TODO - really need some error checking here
     return curl_result
+    
 
 def get_items_from_wishlist_page(wishlist_id, page_number):
     """ Take a wishlist ID and a page number, and return a list of all items on that page
@@ -71,17 +72,9 @@ def get_items_from_wishlist(wishlist_id):
     """
     # connect to wishlist page
     wishlist_url = BASE_URL + wishlist_id
-    headers = {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 6.1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/41.0.2228.0 Safari/537.36',
-    }
-    r = requests.get(wishlist_url, headers=headers)
+    html_data = get_data_via_curl(wishlist_url)
 
-    if r.status_code == 200:
-        logger.info('Successful connection to main wishlist page')
-    else:
-        logger.warning('Error connecting to main wishlist page')
-
-    wishlist_first_page = BeautifulSoup(r.content, "html.parser")
+    wishlist_first_page = BeautifulSoup(html_data, "html.parser")
 
     if wishlist_first_page.find('div', id="wishlistPagination"):
         #if we have multiple pages:
