@@ -10,7 +10,7 @@ class ParentItem(db.Model):
 
 class Item(db.Model):
     id                      = db.Column(db.Integer, primary_key=True)
-    ASIN                    = db.Column(db.String(40), unique=True)
+    ASIN                    = db.Column(db.String(40))
     URL                     = db.Column(db.String(1000))
     list_price_amount       = db.Column(db.Integer)
     list_price_formatted    = db.Column(db.String(40))

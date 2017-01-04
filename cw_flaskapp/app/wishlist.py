@@ -2,6 +2,7 @@ from bs4 import BeautifulSoup
 import requests
 import re
 import os
+from subprocess import check_output
 from time import sleep
 
 import logging
@@ -12,7 +13,7 @@ logfile = os.path.join(current_folder, 'log/wishlist.txt')
 logging.basicConfig(filename=logfile, level=logging.DEBUG, format=FORMAT)
 logger = logging.getLogger(__name__)
 
-BASE_URL = 'http://www.amazon.com/gp/registry/wishlist/'
+BASE_URL = 'https://www.amazon.com/gp/registry/wishlist/'
 PETES_WISHLIST_ID = '1ZF0FXNHUY7IG'
 
 #############################################
@@ -22,90 +23,82 @@ PETES_WISHLIST_ID = '1ZF0FXNHUY7IG'
 #############################################
 
 
-def get_items_from_wishlist_page(wishlistID, pageNumber):
+def get_data_via_curl(url):
+    """ Take a standard URL, return the results from a curl call as a string"""
+    curl_result = check_output(["curl", url])
+    ##TODO - really need some error checking here
+    return curl_result
+
+
+def get_items_from_wishlist_page(wishlist_id, page_number):
     """ Take a wishlist ID and a page number, and return a list of all items on that page
 
         Returns a list of dicts with these keys:
-            itemURL = URL for that variation of the items
-            date_added = date the item was added to the wishListPage
+            item_url = URL for that variation of the items
+            date_added = date the item was added to the wishlist_page
             ASIN = the amazon ASIN for that variation of the item
 
     """
-    print 'getting items from page ' + str(pageNumber)
-    page_url = "{0}/{1}/?page={2}".format(BASE_URL, wishlistID, str(pageNumber))
-    headers = {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 6.1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/41.0.2228.0 Safari/537.36',
-    }
-    r = requests.get(page_url, headers=headers)
+    print 'getting items from page ' + str(page_number)
+    page_url = "{0}/{1}/?page={2}".format(BASE_URL, wishlist_id, str(page_number))
+    html_data = get_data_via_curl(page_url)
 
-    if r.status_code == 200:
-        logger.info('Successful connection to wishlist page {0}'.format(str(pageNumber)))
-    else:
-        logger.warning('Error connecting to wishlist page {0}. Status code {1}'.format(str(pageNumber), str(r.status)))
-
-    wishListPage = BeautifulSoup(r.content, "html.parser")
+    wishlist_page = BeautifulSoup(html_data, "html.parser")
 
     # for each product on this page:
         # get the name, URL, new price, prime status, used price
-    itemList = []
-    listOfItemsOnPage = wishListPage.findAll(id=re.compile('item_'))
-    if len(listOfItemsOnPage) == 0:
+    item_list = []
+    items_on_page = wishlist_page.findAll(id=re.compile('item_'))
+    if len(items_on_page) == 0:
+        print 'no items found'
         return []
     else:
         # each item div in the list has an ID that starts with item_
-        for item in listOfItemsOnPage:
+        for item in items_on_page:
             # if it isn't released yet, we don't need to add it
             if item.find('This title will be released'):
                 print "Not yet out, won't add to DB"
                 continue
-            itemURL = 'http://www.amazon.com' + item.find(class_='a-link-normal')["href"].split("?", 1)[0]
+            item_url = 'http://www.amazon.com' + item.find(class_='a-link-normal')["href"].split("?", 1)[0]
             date_added = item.find(class_='dateAddedText').text.strip().split('\n')[0].replace("Added ", "")
-            ASIN = itemURL.split("/")[-1]
-            itemList.append({"ASIN": ASIN,
+            ASIN = item_url.split("/")[-1]
+            item_list.append({"ASIN": ASIN,
                              "date_added": date_added
                              })
-        return itemList
+        return item_list
 
 
-def get_items_from_wishlist(wishlistID):
+def get_items_from_wishlist(wishlist_id):
     """ Takes a wishlist ID, validates that it's usable, gets a list of all items on it
     """
     # connect to wishlist page
-    wishlistURL = BASE_URL + wishlistID
-    headers = {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 6.1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/41.0.2228.0 Safari/537.36',
-    }
-    r = requests.get(wishlistURL, headers=headers)
+    wishlist_url = BASE_URL + wishlist_id
+    html_data = get_data_via_curl(wishlist_url)
 
-    if r.status_code == 200:
-        logger.info('Successful connection to main wishlist page')
-    else:
-        logger.warning('Error connecting to main wishlist page')
+    wishlist_first_page = BeautifulSoup(html_data, "html.parser")
 
-    wishlistFirstPage = BeautifulSoup(r.content, "html.parser")
-
-    if wishlistFirstPage.find('div', id="wishlistPagination"):
+    if wishlist_first_page.find('div', id="wishlistPagination"):
         #if we have multiple pages:
         # get the number of pages on the wishlist. in the pagination div, there's a list of pages to go to.
         # the second to last is the last page of the wishlist. (the last one is "next")
-        finalPage = int(wishlistFirstPage.find('div', id="wishlistPagination").findAll('li')[-2].text)
-        print 'wishlist has {0} pages'.format(finalPage)
+        final_page = int(wishlist_first_page.find('div', id="wishlistPagination").findAll('li')[-2].text)
+        print 'wishlist has {0} pages'.format(final_page)
     else:
         print 'wishlist only has 1 page'
-        finalPage = 1
+        final_page = 1
 
-    allItems = []
+    all_items = []
 
     # only pull one page for testing
-    # finalPage = 1
+    # final_page = 1
 
-    print 'about to check all pages - have a final page of {0}'.format(str(finalPage))
+    print 'about to check all pages - have a final page of {0}'.format(str(final_page))
     # run through each page:
-    for i in range(1, finalPage+1):
-        allItems += get_items_from_wishlist_page(wishlistID=wishlistID, pageNumber=i)
+    for i in range(1, final_page+1):
+        all_items += get_items_from_wishlist_page(wishlist_id=wishlist_id, page_number=i)
         sleep(1)
 
-    return allItems
+    return all_items
 
 
 def main():
@@ -116,4 +109,4 @@ def main():
 
 if __name__ == "__main__":
     print logfile
-    #main()
+    main()
