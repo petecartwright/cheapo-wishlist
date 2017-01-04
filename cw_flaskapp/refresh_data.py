@@ -1,4 +1,6 @@
-from app import db
+from flask_mail import Message
+
+from app import db, mail
 from app.models import Item, ParentItem, Image, Offer, LastRefreshed
 from app.amazon_api import get_parent_ASIN, get_item_attributes, get_amazon_api, get_images, get_item_variations_from_parent, get_offers
 from app.wishlist import get_items_from_wishlist
@@ -14,7 +16,7 @@ logfile = os.path.join(current_folder, 'app/log/practice.txt')
 logging.basicConfig(filename=logfile, level=logging.DEBUG, format=FORMAT)
 
 WISHLIST_ID = '1ZF0FXNHUY7IG'
-
+MAILTO = 'pete@petecartwright.com'
 
 def get_buybox_price(item):
     ''' take an Item object, return the buybox price and offer if one exists.
@@ -232,6 +234,10 @@ def set_live_data_flag():
     db.session.commit()
 
 
+def send_completion_message():
+    msg = Message("WSIBPT has refreshed", sender="pete.cartwright@gmail.com", recipients=[MAILTO])
+    mail.send(msg)
+
 def main():
 
     amazon_api = get_amazon_api()
@@ -337,6 +343,7 @@ def main():
     print 'Finished run at {0}'.format(datetime.now().strftime('%H:%M %Y-%m-%d'))
     logging.info('Finished run at {0}'.format(datetime.now().strftime('%H:%M %Y-%m-%d')))
 
+    send_completion_message()
 
 if __name__ == '__main__':
 
