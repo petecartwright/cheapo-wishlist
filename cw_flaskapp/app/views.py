@@ -1,7 +1,7 @@
 import logging
 
 from app import app, db
-from .models import Item, Offer
+from .models import Item, Offer, LastRefreshed
 
 from flask import render_template
 
@@ -92,12 +92,15 @@ def index():
     best_deals = get_best_deals()
 
     print 'done loading deals'
+    lastr = LastRefreshed.query.first()
+    refreshed_time = lastr.last_refreshed.strftime('%Y-%m-%d %H:%M%p')
 
     if len(best_deals) == 0:
         return render_template('index.html',
                                best_by_buybox=None,
                                best_by_list=None,
-                               cheapest_overall=None
+                               cheapest_overall=None,
+                               refreshed_time=None
                                )
 
     print 'got best deals, sorting by list'
@@ -111,7 +114,8 @@ def index():
     return render_template('index.html',
                            best_by_buybox=best_by_buybox,
                            best_by_list=best_by_list,
-                           cheapest_overall=cheapest_overall
+                           cheapest_overall=cheapest_overall,
+                           refreshed_time=refreshed_time
                            )
 
 
@@ -122,8 +126,13 @@ def all_items():
 
     best_deals_sorted = sorted(best_deals, key=lambda k: k['best_offer_price'])
 
+    lastr = LastRefreshed.query.first()
+    refreshed_time = lastr.last_refreshed.strftime('%Y-%m-%d %H:%M%p')
+
+
     return render_template('all_items.html',
-                           best_deals_sorted=best_deals_sorted
+                           best_deals_sorted=best_deals_sorted,
+                           refreshed_time=refreshed_time
                            )
 
 #########################################################################
