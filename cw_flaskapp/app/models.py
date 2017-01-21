@@ -21,6 +21,7 @@ class Item(db.Model):
     offers                  = db.relationship('Offer', backref='item', lazy='dynamic')
     parent_id               = db.Column(db.Integer, db.ForeignKey('parent_item.id'))
     is_on_wishlist          = db.Column(db.Boolean, default=False)
+    is_cookbook             = db.Column(db.Boolean, default=False)
     live_data               = db.Column(db.Boolean, default=False)
 
     def __init__(self, ASIN, parent_item=None):

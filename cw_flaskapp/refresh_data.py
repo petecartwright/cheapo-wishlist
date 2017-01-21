@@ -175,6 +175,7 @@ def refresh_item_data(item, amazon_api=None):
     item.name = item_attributes.get('title')
     item.URL = item_attributes.get('URL')
     item.date_last_checked = datetime.date(datetime.today())
+    item.is_cookbook = item_attributes.get('is_cookbook') 
 
     db.session.add(item)
     db.session.commit()

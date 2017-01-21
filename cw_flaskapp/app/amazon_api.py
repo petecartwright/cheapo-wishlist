@@ -6,6 +6,7 @@ import logging
 
 from lxml import objectify
 import bottlenose
+from bs4 import BeautifulSoup
 from amazonconfig import AMAZON_KEY_ID, AMAZON_SECRET_KEY, AMAZON_AFFILIATE_ID
 
 logging.basicConfig(filename='amazon_log.txt', level=logging.DEBUG)
@@ -331,12 +332,26 @@ def get_item_attributes(ASIN, amazon_api=None):
     ''' take an ASIN and a amazon API instance, return a dictionary of the item's attributes
         if there's an error (some items can't be gotten through the API), return an empty dict
     '''
-
+ 
     if amazon_api is None:
         amazon_api = get_amazon_api()
 
-    response = clean_response(amazon_api.ItemLookup(ItemId=ASIN, ResponseGroup="ItemAttributes"))
+    response = clean_response(amazon_api.ItemLookup(ItemId=ASIN, ResponseGroup="ItemAttributes, BrowseNodes"))
     root = objectify.fromstring(response)
+
+    # create a BS4 soup to get the ancestors easily 
+    # really this should probably all be done in bs4 vs lxml.objectify, but here we are.
+    soup = BeautifulSoup(response, 'lxml')
+
+    if soup.ancestors:
+        all_ancestornames = soup.ancestors.findAll('name')
+        cookbooks_in_ancestry = [x for x in all_ancestornames if x.text == 'Cookbooks, Food & Wine']
+        if cookbooks_in_ancestry:
+            is_cookbook = True
+        else:
+            is_cookbook = False
+    else:
+        is_cookbook = False
 
     # check for an error element, return {}
     if hasattr(root.Items.Request, 'Errors'):
@@ -365,7 +380,8 @@ def get_item_attributes(ASIN, amazon_api=None):
                        "listPriceAmount": listPriceAmount,
                        "listPriceFormatted": listPriceFormatted,
                        "title": title,
-                       "product_group": product_group
+                       "product_group": product_group,
+                       "is_cookbook": cookbook
                        }
 
     return item_attributes
