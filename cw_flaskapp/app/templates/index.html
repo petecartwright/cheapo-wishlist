@@ -11,7 +11,7 @@
 
 {% block content %}
 <body>
-    <div class='what-is-this'>what is this</div>
+    <!-- <div class='what-is-this'>what is this</div> -->
     <div class="jumbotron">
       <div class="container text-center jumbotext">
         <h1>WHAT SHOULD I <br/> BUY PETE TODAY? </h1>
@@ -56,7 +56,7 @@
 
     <div class='bottom-color'></div>
 
-    <div class='footer'><a href='{{ url_for('all_items') }}'>See all...</a></div>
+    <div class='footer'>Refreshed at {{ refreshed_time }}. <a href='{{ url_for('all_items') }}'>See all...</a></div>
 
 </body>
 {{ super() }}
