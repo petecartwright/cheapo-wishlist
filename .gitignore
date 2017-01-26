@@ -6,6 +6,8 @@ cheapowishlist/
 cw_flaskapp/flask/
 venv/
 
+cw_flaskapp/migrations/
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
