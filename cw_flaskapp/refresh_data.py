@@ -1,6 +1,6 @@
 from flask_mail import Message
 
-from app import db, mail
+from app import db, mail, app_context
 from app.models import Item, ParentItem, Image, Offer, LastRefreshed
 from app.amazon_api import get_parent_ASIN, get_item_attributes, get_amazon_api, get_images, get_item_variations_from_parent, get_offers
 from app.wishlist import get_items_from_wishlist
@@ -13,6 +13,7 @@ FORMAT = '%(asctime)-15s %(message)s'
 
 current_folder = os.path.dirname(os.path.realpath(__file__))
 logfile = os.path.join(current_folder, 'app/log/practice.txt')
+print 'in refresh_data.py. Logfile is {0}'.format(str(logfile))
 logging.basicConfig(filename=logfile, level=logging.DEBUG, format=FORMAT)
 
 WISHLIST_ID = '1ZF0FXNHUY7IG'
@@ -237,7 +238,8 @@ def set_live_data_flag():
 
 def send_completion_message():
     msg = Message("WSIBPT has refreshed", sender="pete.cartwright@gmail.com", recipients=[MAILTO])
-    mail.send(msg)
+    with app_context():
+        mail.send(msg)
 
 def main():
 
