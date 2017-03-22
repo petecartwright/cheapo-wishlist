@@ -1,6 +1,7 @@
 from flask_mail import Message
 
-from app import db, mail, app_context
+
+from app import db, mail, app
 from app.models import Item, ParentItem, Image, Offer, LastRefreshed
 from app.amazon_api import get_parent_ASIN, get_item_attributes, get_amazon_api, get_images, get_item_variations_from_parent, get_offers
 from app.wishlist import get_items_from_wishlist
@@ -238,7 +239,7 @@ def set_live_data_flag():
 
 def send_completion_message():
     msg = Message("WSIBPT has refreshed", sender="pete.cartwright@gmail.com", recipients=[MAILTO])
-    with app_context():
+    with app.app_context():
         mail.send(msg)
 
 def main():
