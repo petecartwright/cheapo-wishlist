@@ -381,7 +381,7 @@ def get_item_attributes(ASIN, amazon_api=None):
                        "listPriceFormatted": listPriceFormatted,
                        "title": title,
                        "product_group": product_group,
-                       "is_cookbook": cookbook
+                       "is_cookbook": is_cookbook
                        }
 
     return item_attributes
