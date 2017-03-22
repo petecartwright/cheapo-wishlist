@@ -71,15 +71,6 @@ docs/_build/
 target/
 
 *.db
-
-wishlist.db
-
-wishlist_old.py
-
-cw_flaskapp/wlp.html
-
-cw_flaskapp/app.db-journal
-
 cw_flaskapp/best_deals.txt
 
 *.txt
