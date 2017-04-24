@@ -7,8 +7,9 @@ from flask import render_template
 
 
 FORMAT = '%(asctime)-15s %(message)s'
-
-logging.basicConfig(filename='best_deals.txt', level=logging.DEBUG, format=FORMAT)
+current_folder = os.path.dirname(os.path.realpath(__file__))
+logfile = os.path.join(current_folder, 'app/log/views.txt')
+logging.basicConfig(filename=logfile, level=logging.DEBUG, format=FORMAT)
 
 logger = logging.getLogger(__name__)
 

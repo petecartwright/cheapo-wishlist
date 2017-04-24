@@ -3,13 +3,16 @@ import random
 import unicodedata
 from time import sleep
 import logging
+import os
 
 from lxml import objectify
 import bottlenose
 from bs4 import BeautifulSoup
 from amazonconfig import AMAZON_KEY_ID, AMAZON_SECRET_KEY, AMAZON_AFFILIATE_ID
 
-logging.basicConfig(filename='amazon_log.txt', level=logging.DEBUG)
+current_folder = os.path.dirname(os.path.realpath(__file__))
+logfile = os.path.join(current_folder, 'log/amazon_log.txt')
+logging.basicConfig(filename=logfile, level=logging.DEBUG)
 
 logger = logging.getLogger(__name__)
 
@@ -21,7 +24,7 @@ objectify.enable_recursive_str()
 def api_error_handler(err):
     ex = err['exception']
     url = err['api_url']
-    logger.debug('{0} error getting {0} '.format(type(ex), url))
+    logger.debug('%s error getting %s ', type(ex), url)
     if isinstance(ex, urllib2.HTTPError) and ex.code == 503:
         print 'whoa ho ho, slow down a bit buckaroo'
         sleep(random.expovariate(0.1))
@@ -223,7 +226,7 @@ def get_offers(item, amazon_api=None):
                        'prime_eligible': buybox_prime_eligible,
                        'availability': buybox_availability,
                        'item_id': item_id
-                       })
+                      })
     else:
         print 'No buybox for ASIN {0}, name {1}'.format(item.ASIN, item.name)
 
@@ -255,7 +258,7 @@ def get_offers(item, amazon_api=None):
                  'prime_eligible': prime_eligible,
                  'availability': availability,
                  'item_id': item_id
-                 }
+                }
         offers.append(offer)
 
     print 'after others, offers has {0} elements'.format(str(len(offers)))
@@ -297,17 +300,17 @@ def get_images(ASIN, amazon_api=None):
         images['SmallImage'] = {"URL": item.SmallImage.URL,
                                 "Height": item.SmallImage.Height,
                                 "Width": item.SmallImage.Width
-                                }
+                               }
     if mediumImage:
         images['MediumImage'] = {"URL": item.MediumImage.URL,
                                  "Height": item.MediumImage.Height,
                                  "Width": item.MediumImage.Width
-                                 }
+                                }
     if largeImage:
         images['MediumImage'] = {"URL": item.LargeImage.URL,
                                  "Height": item.LargeImage.Height,
                                  "Width": item.LargeImage.Width
-                                 }
+                                }
 
     return images
 
@@ -382,6 +385,6 @@ def get_item_attributes(ASIN, amazon_api=None):
                        "title": title,
                        "product_group": product_group,
                        "is_cookbook": is_cookbook
-                       }
+                      }
 
     return item_attributes
