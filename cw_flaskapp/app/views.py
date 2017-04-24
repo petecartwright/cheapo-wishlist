@@ -1,9 +1,12 @@
 import logging
+import os
+
+from flask import render_template
 
 from app import app, db
 from .models import Item, Offer, LastRefreshed
 
-from flask import render_template
+
 
 
 FORMAT = '%(asctime)-15s %(message)s'
