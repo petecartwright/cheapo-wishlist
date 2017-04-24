@@ -11,7 +11,7 @@ from .models import Item, Offer, LastRefreshed
 
 FORMAT = '%(asctime)-15s %(message)s'
 current_folder = os.path.dirname(os.path.realpath(__file__))
-logfile = os.path.join(current_folder, 'app/log/views.txt')
+logfile = os.path.join(current_folder, 'log/views.txt')
 logging.basicConfig(filename=logfile, level=logging.DEBUG, format=FORMAT)
 
 logger = logging.getLogger(__name__)
