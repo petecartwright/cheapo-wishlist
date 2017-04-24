@@ -76,3 +76,5 @@ target/
 cw_flaskapp/best_deals.txt
 
 *.txt
+
+cw_flaskapp/app/FAQ

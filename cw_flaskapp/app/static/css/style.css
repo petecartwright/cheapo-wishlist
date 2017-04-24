@@ -23,7 +23,6 @@ Light Grey: #DBF3FA
     text-align: right;
 }
 
-
 .jumbotron {
     background-color: #88E1FB;
     margin-top: 30px;
@@ -35,16 +34,13 @@ Light Grey: #DBF3FA
     font-size: 6em;
 }
 
-
 .jumbotext {
     font-family: 'Lato', sans-serif;
 }
 
 .buy-button {
-
     color: #556D74;
     font-size: 1.5em;
-
 }
 
 .col-centered {
@@ -60,7 +56,6 @@ Light Grey: #DBF3FA
     position: fixed;
     bottom: 0;
     z-index: -1;
-
 }
 
 .btn-primary {
