@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>WSIBPT? FAQ</title> 
+<style media="screen" type="text/css">
+
+body {
+    padding: 40px;
+}
+
+</style>
+
+</head>
+<body>
+<h2>What is this?</h2>
+
+I love Amazon's wishlists and also love deals. "Sort by Price" on Amazon's wishlist page now is very very broken, so I built this to help everyone find the best deals on things to buy me. <br><br>
+
+<h2>Where does the data come from?</h2>
+
+I use the <a href="http://docs.aws.amazon.com/AWSECommerceService/latest/DG/Welcome.html">Amazon Product Advertising API</a> to get the information on indvidual products, using <a href="https://github.com/lionheart/bottlenose">bottlenose</a> as a Python wrapper for the API. <br>
+They don't offer an API to get wishlists, so I scrape those using <a href="http://docs.python-requests.org/en/master/">requests</a> + <a href="https://www.crummy.com/software/BeautifulSoup/">BeautifulSoup</a>. (It works really well until Amazon realizes it's a script and not a human, so I'm usually not able to pull the full wishlist each day). <br><br>
+
+<h2>Couldn't this have been generalized to check wishlists for anybody?</h2>
+
+Maybe, but the Amazon Product Advertising API is a) highly contstrained on the number of calls/minute you can make AND b) requires a lot of calls to get all the information we want.<br><br>
+
+<h2>I see you embed your Affiliate ID in the urls for people to buy you things, isn't that a bit much?</h2>
+
+<h1>😎</h2><br>
+
+<h2>What's this built on?</h2>
+
+The site is being served on a Linode VPS running Ubuntu 16.04. The site backend is nginx+Gunicorn+Flask.<br><br>
+
+<h2>Who are you?</h2>
+
+I'm Pete Cartwright, a developer in <a href="https://www.google.com/maps/place/Richmond,+VA/@37.5199492,-77.5253708,12z/data=!4m5!3m4!1s0x89b111095799c9ed:0xbfd83e6de2423cc5!8m2!3d37.5407246!4d-77.4360481">Richmond, VA</a>. Check me out on <a href="http://twitter.com/petecartwright">Twitter</a>, <a href="https://www.github.com/petecartwright">GitHub</a>, and at <a href="mailto:pete@petecartwright.com">pete@petecartwright.com</a>.<br><br>
+
+Other projects include <a href="http://www.petecartwright.com/switch_checker">Switch Checker</a> and <a href="http://joebiden.sexy">joebiden.sexy</a> (warning: autoplaying music!).
+
+
+
+<!-- Bootstrap + jQuery -->
+<script
+  src="https://code.jquery.com/jquery-3.2.1.min.js"
+  integrity="sha256-hwg4gsxgFZhOsEEamdOYGBf13FyQuiTwlAQgxVSNgt4="
+  crossorigin="anonymous">
+</script>
+<link 
+    rel="stylesheet" 
+    href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-alpha.6/css/bootstrap.min.css" 
+    integrity="sha384-rwoIResjU2yc3z8GV/NPeZWAv56rSmLldC3R/AZzGRnGxQQKnKkoFVhFQhNUwEyJ" 
+    crossorigin="anonymous">
+<script 
+    src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-alpha.6/js/bootstrap.min.js" 
+    integrity="sha384-vBWWzlZJ8ea9aCX4pEW3rVHjgjt7zpkNpZk+02D9phzyeVkE+jo0ieGizqPLForn" 
+    crossorigin="anonymous">
+</script>
+
+<!-- Google Analytics  -->
+<script>
+  (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+  (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+  m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+  })(window,document,'script','https://www.google-analytics.com/analytics.js','ga');
+
+  ga('create', 'UA-9158564-2', 'auto');
+  ga('send', 'pageview');
+
+</script>
+
+
+</body>
+</html>
