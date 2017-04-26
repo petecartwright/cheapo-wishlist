@@ -12,29 +12,28 @@ body {
 
 </head>
 <body>
-
-
-<h1>What is this?</h1>
+<h2>What is this?</h2>
 
 I love Amazon's wishlists and also love deals. "Sort by Price" on Amazon's wishlist page now is very very broken, so I built this to help everyone find the best deals on things to buy me. <br><br>
 
-<h1>Is this accurate?</h1>
+<h2>Where does the data come from?</h2>
 
-<br><br>
+I use the <a href="http://docs.aws.amazon.com/AWSECommerceService/latest/DG/Welcome.html">Amazon Product Advertising API</a> to get the information on indvidual products, using <a href="https://github.com/lionheart/bottlenose">bottlenose</a> as a Python wrapper for the API. <br>
+They don't offer an API to get wishlists, so I scrape those using <a href="http://docs.python-requests.org/en/master/">requests</a> + <a href="https://www.crummy.com/software/BeautifulSoup/">BeautifulSoup</a>. (It works really well until Amazon realizes it's a script and not a human, so I'm usually not able to pull the full wishlist each day). <br><br>
 
-<h1>Why don't you check more often?</h1>
+<h2>Couldn't this have been generalized to check wishlists for anybody?</h2>
 
-Best Buy only updates their data once a day. Sorry.<br><br>
+Maybe, but the Amazon Product Advertising API is a) highly contstrained on the number of calls/minute you can make AND b) requires a lot of calls to get all the information we want.<br><br>
 
-<h1>Couldn't this have been generalized to check stock for all sorts of products?</h1>
+<h2>I see you embed your Affiliate ID in the urls for people to buy you things, isn't that a bit much?</h2>
 
-Yes, but I wanted a Switch.<br><br>
+<h1>😎</h2><br>
 
-<h1>What's this built on?</h1>
+<h2>What's this built on?</h2>
 
-The site is being served on a Linode VPS running Ubuntu 16.04. The site backend is nginx+Gunicorn+Flask, and the front-end is (almost completely) in React.<br><br>
+The site is being served on a Linode VPS running Ubuntu 16.04. The site backend is nginx+Gunicorn+Flask.<br><br>
 
-<h1>Who are you?</h1>
+<h2>Who are you?</h2>
 
 I'm Pete Cartwright, a developer in <a href="https://www.google.com/maps/place/Richmond,+VA/@37.5199492,-77.5253708,12z/data=!4m5!3m4!1s0x89b111095799c9ed:0xbfd83e6de2423cc5!8m2!3d37.5407246!4d-77.4360481">Richmond, VA</a>. Check me out on <a href="http://twitter.com/petecartwright">Twitter</a>, <a href="https://www.github.com/petecartwright">GitHub</a>, and at <a href="mailto:pete@petecartwright.com">pete@petecartwright.com</a>.<br><br>
 
