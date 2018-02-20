@@ -80,7 +80,7 @@ def get_items_from_wishlist(wishlist_id):
     """
     # connect to wishlist page
     wishlist_url = BASE_URL + wishlist_id
-    html_data = get_data_via_curl(wishlist_url)
+    html_data = get_items_from_wishlist_page(wishlist_url)
 
     wishlist_first_page = BeautifulSoup(html_data, "html.parser")
 
