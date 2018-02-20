@@ -1,6 +1,5 @@
 from flask_mail import Message
 
-
 from app import db, mail, app
 from app.models import Item, ParentItem, Image, Offer, LastRefreshed
 from app.amazon_api import get_parent_ASIN, get_item_attributes, get_amazon_api, get_images, get_item_variations_from_parent, get_offers
@@ -10,18 +9,23 @@ from datetime import datetime
 import os
 import logging
 
-FORMAT = '%(asctime)-15s %(message)s'
-
+current_date = datetime.now().strftime('%Y%m%d')
 current_folder = os.path.dirname(os.path.realpath(__file__))
-logfile = os.path.join(current_folder, 'app/log/practice.txt')
-print 'in refresh_data.py. Logfile is {0}'.format(str(logfile))
-logging.basicConfig(filename=logfile, level=logging.DEBUG, format=FORMAT)
+logfile = os.path.join(current_folder, 'app/log/refresh_log_{0}.txt'.format(current_date))
+
+logger = logging.getLogger(__name__)
+
+fh = logging.FileHandler(logfile)
+fh.setLevel(logging.DEBUG)
+formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s', datefmt='%Y-%m-%d %I:%M:%S %p')
+fh.setFormatter(formatter)
+logger.addHandler(fh)
 
 WISHLIST_ID = '1ZF0FXNHUY7IG'
 MAILTO = 'pete@petecartwright.com'
 
 def get_buybox_price(item):
-    ''' take an Item object, return the buybox price and offer if one exists.
+    ''' take an Item object, return the buybox price
         Returns None if not
     '''
 
@@ -60,13 +64,13 @@ def find_best_offer_per_wishlist_item():
 
         if best_offer:
             # mark the best offer
-            print('Best Offer for {0} is {1}'.format(item.name, best_offer))
+            logger.info('Best Offer for {0} is {1}'.format(item.name, best_offer))
             best_offer.best_offer = True
             best_offer.wishlist_item_id = item.id
             db.session.add(best_offer)
             db.session.commit()
         else:
-            print('No best offer for {0}'.format(item.name))
+            logger.info('No best offer for {0}'.format(item.name))
 
 
 def add_wishlist_items_to_db(wishlist_items):
@@ -218,13 +222,13 @@ def update_last_refreshed():
 def remove_old_data():
     ''' Delete everything from the database that's flagged as live_data == True '''
     deleted_items = Item.query.filter(Item.live_data==True).delete()
-    logging.debug('deleted {0} items'.format(str(deleted_items)))
+    logger.debug('deleted {0} items'.format(str(deleted_items)))
     deleted_images = Image.query.filter(Image.live_data==True).delete()
-    logging.debug('deleted {0} images'.format(str(deleted_images)))
+    logger.debug('deleted {0} images'.format(str(deleted_images)))
     deleted_offers = Offer.query.filter(Offer.live_data==True).delete()
-    logging.debug('deleted {0} offers'.format(str(deleted_images)))
+    logger.debug('deleted {0} offers'.format(str(deleted_images)))
     delete_parents = ParentItem.query.filter(ParentItem.live_data==True).delete()
-    logging.debug('deleted {0} parents'.format(str(deleted_images)))
+    logger.debug('deleted {0} parents'.format(str(deleted_images)))
     db.session.commit()
 
 
@@ -242,6 +246,18 @@ def send_completion_message():
     with app.app_context():
         mail.send(msg)
 
+
+def get_current_wishlist_items():
+    ''' We call this if we don't get anything back from our web scraping
+        Returns a dict with all current wishlist items, with ASIN and date added,
+            just like the real wishlist would
+    '''
+    all_items = Item.query.filter(Item.is_on_wishlist==True).with_entities(Item.ASIN, Item.date_last_checked).all()
+
+    items_to_return = [{"ASIN": x[0], "date_last_checked": x[1]} for x in all_items]
+    
+    return items_to_return
+
 def main():
 
     amazon_api = get_amazon_api()
@@ -249,13 +265,13 @@ def main():
     # scan the wishlist on Amazon's site
     wishlist_items = get_items_from_wishlist(WISHLIST_ID)
 
-    # if we didn't get anything back, just leave well enough alone for now
+    # if we didn't get anything back, refresh the prices for what we do have
     if len(wishlist_items) == 0:
-        logging.warning('Nothing returned from the last wishlist check - Exiting.')
-        return False
-
-    # add all of the wishlist items to the database
-    add_wishlist_items_to_db(wishlist_items=wishlist_items)
+        wishlist_items = get_current_wishlist_items()
+        logger.warning('Nothing returned from the last wishlist check - using old data.')
+    else:
+        # add all of the wishlist items to the database
+        add_wishlist_items_to_db(wishlist_items=wishlist_items)
 
     # we're using a live_data flag to indicate which are live on the site and which aren't
     # everything we're updating won't have a live data flag until the end, where we delete
@@ -264,13 +280,13 @@ def main():
     # now that all of the base items are in the wishlist, get all of the parent items
     all_items = Item.query.filter(Item.live_data==False).all()
     for i in all_items:
-        print 'getting parent for {0}'.format(i.ASIN)
+        logger.info('getting parent for {0}'.format(i.ASIN))
         item_parent_ASIN = get_parent_ASIN(ASIN=i.ASIN, amazon_api=amazon_api)
-        print 'got parent'
+        logger.info('got parent')
         # if this parent doesn't exist, create it
         parent = ParentItem.query.filter_by(parent_ASIN=item_parent_ASIN, live_data=False).first()
         if parent is None:
-            print "parent doesn't exist, creating"
+            logger.info("parent doesn't exist, creating")
             parent = ParentItem(parent_ASIN=item_parent_ASIN)
             db.session.add(parent)
             db.session.commit()
@@ -283,21 +299,21 @@ def main():
     all_parents = ParentItem.query.filter(Item.live_data==False).all()
     for p in all_parents:
         # get a list of all ASINS under that parent
-        print 'getting variations for {0}'.format(p.parent_ASIN)
+        logger.info('getting variations for {0}'.format(p.parent_ASIN))
         variations = get_variations(parent_ASIN=p.parent_ASIN, amazon_api=amazon_api)
-        print 'Found {0} variations for {1}'.format(len(variations), p.parent_ASIN)
+        logger.info('Found {0} variations for {1}'.format(len(variations), p.parent_ASIN))
         for v in variations:
-            print 'Checking for existence of variation {0}'.format(v)
+            logger.info('   Checking for existence of variation {0}'.format(v))
             var = Item.query.filter_by(ASIN=v).all()
             if len(var) == 0:
-                print 'Don''t have this one, adding.'
+                logger.info("       Don't have this one, adding.")
                 # if we don't have these variations already, add them to the database
                 # with the correct parent
                 new_variation = Item(ASIN=v, parent_item=p)
                 db.session.add(new_variation)
                 db.session.commit()
             else:
-                print 'Have it.'
+                logger.info("       Have it.")
 
     ## Next step is to get the item data for everything in the database
 
@@ -305,7 +321,7 @@ def main():
     # all all offers for each item
     all_items = Item.query.filter(Item.live_data==False).all()
     for i in all_items:
-        print 'in the item refresh'
+        logger.info('in the item refresh')
         refresh_item_data(item=i, amazon_api=amazon_api)
         # cant' get info on some - looks like maybe weapons?
         if i.name is not None:
@@ -313,14 +329,14 @@ def main():
             # first remove existing offers from database
             item_offers = i.offers.all()
             for x in item_offers:
-                print 'trying to remove old offers'
+                logger.info('trying to remove old offers')
                 db.session.delete(x)
                 db.session.commit()
             # can't get offers for Kindle Books
             if i.product_group == 'eBooks':
-                print "can't get offers for Kindle books"
+                logger.info("can't get offers for Kindle books")
             else:
-                print 'getting offers for {0}'.format(i.ASIN)
+                logger.info('getting offers for {0}'.format(i.ASIN))
                 offers = get_offers(item=i, amazon_api=amazon_api)
                 for o in offers:
                     new_offer = Offer()
@@ -344,8 +360,7 @@ def main():
 
     set_live_data_flag()
 
-    print 'Finished run at {0}'.format(datetime.now().strftime('%H:%M %Y-%m-%d'))
-    logging.info('Finished run at {0}'.format(datetime.now().strftime('%H:%M %Y-%m-%d')))
+    logger.info('Finished run at {0}'.format(datetime.now().strftime('%H:%M %Y-%m-%d')))
 
     send_completion_message()
 
