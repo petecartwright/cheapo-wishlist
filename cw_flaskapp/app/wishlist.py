@@ -103,7 +103,7 @@ def get_items_from_wishlist(wishlist_id):
     all_items = []
 
 
-    logger.info('about to check all pages - have a final page of {0}'.format(str(final_page))
+    logger.info('about to check all pages - have a final page of {0}'.format(str(final_page)))
     # run through each page:
     for i in range(1, final_page+1):
         all_items += get_items_from_wishlist_page(wishlist_id=wishlist_id, page_number=i)
