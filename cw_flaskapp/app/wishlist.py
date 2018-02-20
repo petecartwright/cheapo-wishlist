@@ -6,28 +6,22 @@ from subprocess import check_output
 from time import sleep
 
 import logging
+from datetime import datetime
 
-FORMAT = '%(asctime)-15s %(message)s'
+current_date = datetime.now().strftime('%Y%m%d')
 current_folder = os.path.dirname(os.path.realpath(__file__))
-logfile = os.path.join(current_folder, 'log/wishlist.txt')
-logging.basicConfig(filename=logfile, level=logging.DEBUG, format=FORMAT)
+logfile = os.path.join(current_folder, 'log/wishlist_log_{0}.txt'.format(current_date))
+
 logger = logging.getLogger(__name__)
+
+fh = logging.FileHandler(logfile)
+fh.setLevel(logging.DEBUG)
+formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s', datefmt='%Y-%m-%d %I:%M:%S %p')
+fh.setFormatter(formatter)
+logger.addHandler(fh)
 
 BASE_URL = 'https://www.amazon.com/gp/registry/wishlist/'
 PETES_WISHLIST_ID = '1ZF0FXNHUY7IG'
-
-#############################################
-#
-#   Quickie Functions
-#
-#############################################
-
-
-def get_data_via_curl(url):
-    """ Take a standard URL, return the results from a curl call as a string"""
-    curl_result = check_output(["curl", url])
-    ##TODO - really need some error checking here
-    return curl_result
 
 
 def get_items_from_wishlist_page(wishlist_id, page_number):
@@ -41,7 +35,20 @@ def get_items_from_wishlist_page(wishlist_id, page_number):
     """
     print 'getting items from page ' + str(page_number)
     page_url = "{0}/{1}/?page={2}".format(BASE_URL, wishlist_id, str(page_number))
-    html_data = get_data_via_curl(page_url)
+
+    # connect to wishlist page
+    wishlist_url = BASE_URL + wishlist_id
+    headers = {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 6.1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/41.0.2228.0 Safari/537.36',
+    }
+    r = requests.get(wishlist_url, headers=headers)
+  
+    if r.status_code == 200:
+        logger.info('Successful connection to main wishlist page')
+    else:
+        logger.warning('Error connecting to main wishlist page')
+    
+    wishlist_first_page = BeautifulSoup(r.content, "html.parser")
 
     wishlist_page = BeautifulSoup(html_data, "html.parser")
 
@@ -108,5 +115,4 @@ def main():
 
 
 if __name__ == "__main__":
-    print logfile
     main()
