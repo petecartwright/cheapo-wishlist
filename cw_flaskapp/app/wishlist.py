@@ -48,7 +48,7 @@ def get_items_from_wishlist_page(wishlist_id, page_number):
     else:
         logger.warning('    Error connecting to wishlist page {0}'.format(str(page_number)))
 
-    wishlist_page = BeautifulSoup(html_data, "html.parser")
+    wishlist_page = BeautifulSoup(r.content, "html.parser")
 
     # for each product on this page:
         # get the name, URL, new price, prime status, used price
