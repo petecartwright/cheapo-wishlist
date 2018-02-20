@@ -1,12 +1,10 @@
 import logging
 import os
 
-from flask import render_template
+from flask import render_template, jsonify
 
 from app import app, db
 from .models import Item, Offer, LastRefreshed
-
-
 
 
 FORMAT = '%(asctime)-15s %(message)s'
@@ -72,7 +70,7 @@ def get_best_deals():
                      'best_offer': deal,
                      'savings_vs_list': savings_vs_list,
                      'savings_vs_buybox': savings_vs_buybox
-                     }
+                    }
         deals_with_info.append(best_deal)
 
     return deals_with_info
@@ -88,7 +86,6 @@ def get_best_deals():
 
 @app.route('/')
 @app.route('/index')
-# @login_required
 def index():
 
     print 'loading index'
@@ -105,7 +102,7 @@ def index():
                                best_by_list=None,
                                cheapest_overall=None,
                                refreshed_time=None
-                               )
+                              )
 
     print 'got best deals, sorting by list'
     best_by_list = sorted(best_deals, key=lambda k: k['savings_vs_list'], reverse=True)[0]
@@ -120,14 +117,13 @@ def index():
                            best_by_list=best_by_list,
                            cheapest_overall=cheapest_overall,
                            refreshed_time=refreshed_time
-                           )
+                          )
 
 
 @app.route('/all')
 def all_items():
 
     best_deals = get_best_deals()
-
     best_deals_sorted = sorted(best_deals, key=lambda k: k['best_offer_price'])
 
     lastr = LastRefreshed.query.first()
@@ -137,11 +133,27 @@ def all_items():
     return render_template('all_items.html',
                            best_deals_sorted=best_deals_sorted,
                            refreshed_time=refreshed_time
-                           )
+                          )
 
 @app.route('/faq')
 def faq():
     return render_template('faq.html')
+
+#########################################################################
+#########################################################################
+#
+#   api
+#
+#########################################################################
+#########################################################################
+
+@app.route('/items/all')
+def items():
+
+    best_deals = {'results': get_best_deals()}
+
+    return jsonify(best_deals)
+
 
 #########################################################################
 #########################################################################
