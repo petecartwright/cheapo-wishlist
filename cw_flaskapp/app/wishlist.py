@@ -33,7 +33,7 @@ def get_items_from_wishlist_page(wishlist_id, page_number):
             ASIN = the amazon ASIN for that variation of the item
 
     """
-    logger.info'getting items from page ' + str(page_number)
+    logger.info('getting items from page ' + str(page_number)
     page_url = "{0}/{1}/?page={2}".format(BASE_URL, wishlist_id, str(page_number))
 
     # connect to wishlist page
