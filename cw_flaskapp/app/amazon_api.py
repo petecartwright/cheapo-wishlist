@@ -4,17 +4,24 @@ import unicodedata
 from time import sleep
 import logging
 import os
+from datetime import datetime
 
 from lxml import objectify
 import bottlenose
 from bs4 import BeautifulSoup
 from amazonconfig import AMAZON_KEY_ID, AMAZON_SECRET_KEY, AMAZON_AFFILIATE_ID
 
+current_date = datetime.now().strftime('%Y%m%d')
 current_folder = os.path.dirname(os.path.realpath(__file__))
-logfile = os.path.join(current_folder, 'log/amazon_log.txt')
-logging.basicConfig(filename=logfile, level=logging.DEBUG)
+logfile = os.path.join(current_folder, 'log/api_log_{0}.txt'.format(current_date))
 
 logger = logging.getLogger(__name__)
+
+fh = logging.FileHandler(logfile)
+fh.setLevel(logging.DEBUG)
+formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s', datefmt='%Y-%m-%d %I:%M:%S %p')
+fh.setFormatter(formatter)
+logger.addHandler(fh)
 
 # allow us to print lxml.objectify objects in a nice way
 # can pull this out in prod
@@ -26,7 +33,7 @@ def api_error_handler(err):
     url = err['api_url']
     logger.debug('%s error getting %s ', type(ex), url)
     if isinstance(ex, urllib2.HTTPError) and ex.code == 503:
-        print 'whoa ho ho, slow down a bit buckaroo'
+        logger.info('hit rate limit on API... waiting...')
         sleep(random.expovariate(0.1))
         return True
     return False
@@ -45,6 +52,7 @@ def debug_print_lxml(to_print):
 
 def get_amazon_api():
     amazon_api = bottlenose.Amazon(AMAZON_KEY_ID, AMAZON_SECRET_KEY, AMAZON_AFFILIATE_ID, MaxQPS=0.9, ErrorHandler=api_error_handler)
+    logger.info('Created new API object successfully')
     return amazon_api
 
 
@@ -75,6 +83,7 @@ def get_parent_ASIN(ASIN, amazon_api=None):
 
     if product_group == 'Book':
         response = clean_response(amazon_api.ItemLookup(ItemId=ASIN, ResponseGroup="RelatedItems,ItemAttributes", Condition='All', RelationshipType='AuthorityTitle'))
+        logger.info('API Call to get parent for {0}'.format(ASIN))
         item = objectify.fromstring(response)
         if hasattr(item.Items.Item, 'RelatedItems'):
             if item.Items.Item.RelatedItems.RelatedItem.Item.ItemAttributes.ProductGroup == 'Authority Non Buyable':
@@ -85,6 +94,7 @@ def get_parent_ASIN(ASIN, amazon_api=None):
             parent_ASIN = ASIN
     else:
         response = clean_response(amazon_api.ItemLookup(ItemId=ASIN, ResponseGroup="Variations", Condition='All'))
+        logger.info('API Call to get parent for {0}'.format(ASIN))
         item = objectify.fromstring(response)
 
         try:
@@ -104,12 +114,13 @@ def get_book_variations_from_page(ASIN, amazon_api=None, page_number=1):
     if amazon_api is None:
         amazon_api = get_amazon_api()
 
-    print 'getting variations on page ' + str(page_number)
     response = clean_response(amazon_api.ItemLookup(ItemId=ASIN,
                                                     ResponseGroup="RelatedItems",
                                                     Condition='All',
                                                     RelationshipType='AuthorityTitle',
                                                     RelatedItemPage=page_number))
+
+    logger.info('API Call to get variations on {0} (on page {1}'.format(ASIN, str(page_number)))
     root = objectify.fromstring(response)
     relatedItems = root.Items.Item.RelatedItems
     variations_on_page = []
@@ -138,13 +149,17 @@ def get_item_variations_from_parent(parentASIN, amazon_api=None):
                                                         ResponseGroup="RelatedItems",
                                                         Condition='All',
                                                         RelationshipType='AuthorityTitle'))
+        logger.info('API Call to get variations from parent for {0}'.format(parentASIN))
         root = objectify.fromstring(response)
         if hasattr(root.Items.Item, 'RelatedItems'):
             relatedItems = root.Items.Item.RelatedItems
             numberOfPages = relatedItems.RelatedItemPageCount
             variationASINs = []
             for i in range(1, numberOfPages + 1):
-                variationASINs.extend(get_book_variations_from_page(ASIN=parentASIN, page_number=i))
+                variationASINs.extend(get_book_variations_from_page(ASIN=parentASIN, 
+                                                                    page_number=i,
+                                                                    amazon_api=amazon_api
+                                                                    ))
         else:
             variationASINs = [parentASIN]
 
@@ -152,13 +167,13 @@ def get_item_variations_from_parent(parentASIN, amazon_api=None):
         response = clean_response(amazon_api.ItemLookup(ItemId=parentASIN,
                                                         ResponseGroup="Variations",
                                                         Condition='All'))
+        logger.info('API Call to get variations from parent for {0}'.format(parentASIN))
         root = objectify.fromstring(response)
 
         variationASINs = []
         # if root.Items.Item.Variations doesn't exist,
         # there are no variations, so just the one version
-        # which we add to the array and return. I don't love
-        # the try-except block but it's working.
+        # which we add to the array and return.
 
         try:
             variations = root.Items.Item.Variations
@@ -179,6 +194,7 @@ def get_product_group(ASIN, amazon_api=None):
         amazon_api = get_amazon_api()
 
     response = clean_response(amazon_api.ItemLookup(ItemId=ASIN, ResponseGroup="ItemAttributes", Condition='All'))
+    logger.info('API Call to get product group for {0}'.format(ASIN))
     item = objectify.fromstring(response)
 
     try:
@@ -204,9 +220,10 @@ def get_offers(item, amazon_api=None):
     # first get the main offer - this is the one that "won the Buy Box"
 
     buybox_response = clean_response(amazon_api.ItemLookup(ItemId=ASIN, ResponseGroup="OfferListings"))
+    logger.info('API Call to get buybox for {0}'.format(ASIN))
     buybox_root = objectify.fromstring(buybox_response)
     if buybox_root.Items.Item.Offers.TotalOffers != 0:
-        print 'have a buybox'
+        logger.info('       We do have a buybox for ASIN {0}, name {1}'.format(item.ASIN, item.name))
         buybox_condition = buybox_root.Items.Item.Offers.Offer.OfferAttributes.Condition
         buybox_price_amount = buybox_root.Items.Item.Offers.Offer.OfferListing.Price.Amount
         buybox_price_formatted = buybox_root.Items.Item.Offers.Offer.OfferListing.Price.FormattedPrice
@@ -228,12 +245,14 @@ def get_offers(item, amazon_api=None):
                        'item_id': item_id
                       })
     else:
-        print 'No buybox for ASIN {0}, name {1}'.format(item.ASIN, item.name)
+        logger.info('       No buybox for ASIN {0}, name {1}'.format(item.ASIN, item.name))
 
-    print 'after buybox, offers has {0} elements'.format(str(len(offers)))
+    
+    logger.info('   After buybox, ASIN {0} ({1}) has {2} offers'.format(item.ASIN, item.name, str(len(offers))))
     # then get the best third-party offers
 
     tp_response = clean_response(amazon_api.ItemLookup(ItemId=ASIN, ResponseGroup="Offers", Condition='All'))
+    logger.info('API Call to get third-party offers for {0}'.format(ASIN))
     tp_root = objectify.fromstring(tp_response)
 
     offerList = tp_root.Items.Item.Offers.iterchildren(tag='Offer')
@@ -261,7 +280,7 @@ def get_offers(item, amazon_api=None):
                 }
         offers.append(offer)
 
-    print 'after others, offers has {0} elements'.format(str(len(offers)))
+    logger.info('   After others, ASIN {0} ({1}) has {2} offers'.format(item.ASIN, item.name, str(len(offers))))
 
     return offers
 
@@ -276,14 +295,17 @@ def get_images(ASIN, amazon_api=None):
 
     try:
         response = clean_response(amazon_api.ItemLookup(ItemId=ASIN, ResponseGroup="Images", Condition='All'))
-    except Error, err:
-        print err
+        logger.info('API Call to get images for {0}'.format(ASIN))
+    except Exception as err:
+        logger.error('Error getting images!')
+        logger.error(err.msg)
         return {}
 
     root = objectify.fromstring(response)
 
     # check for an error element, return {}
     if hasattr(root.Items.Request, 'Errors'):
+        logger.error('  Error in the returned Amazon data: '+ root.Items.Request.Errors.__dict__)
         return {}
 
     item = root.Items.Item
@@ -321,6 +343,7 @@ def check_for_valid_ASIN(ASIN, amazon_api=None):
         amazon_api = get_amazon_api()
 
     response = clean_response(amazon_api.ItemLookup(ItemId=ASIN, ResponseGroup="ItemAttributes"))
+    logger.info('API Call to validate ASIN for {0}'.format(ASIN))
     root = objectify.fromstring(response)
 
     # if there are errors, check for the invalid param one
@@ -340,6 +363,7 @@ def get_item_attributes(ASIN, amazon_api=None):
         amazon_api = get_amazon_api()
 
     response = clean_response(amazon_api.ItemLookup(ItemId=ASIN, ResponseGroup="ItemAttributes, BrowseNodes"))
+    logger.info('API Call to get item attributes for {0}'.format(ASIN))
     root = objectify.fromstring(response)
 
     # create a BS4 soup to get the ancestors easily 
