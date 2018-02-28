@@ -24,11 +24,38 @@ BASE_URL = 'https://www.amazon.com/gp/registry/wishlist/'
 PETES_WISHLIST_ID = '1ZF0FXNHUY7IG'
 
 
+def get_items_from_local_file(filename=None):
+
+    if filename is None:
+        filename = 'data/wishlist_02_19_2018.html'
+    
+    soup = BeautifulSoup(open(filename), 'html.parser')
+
+    all_asin_inputs_in_soup = soup.findAll('input',{'name':'itemId'})
+
+    asin_values = []
+
+    for asin_input in all_asin_inputs_in_soup:
+        value_string = asin_input.get('value')
+        # these are (as of 2/24/18) formatted like this:
+        ## 'ASIN:B00FLYWNYQ|ATVPDKIKX0DER'
+        # so we remove the 'ASIN:' and the '|ATVPDKIKX0DER'
+        # I think the ATVPDKIKX0DER is the US Market ID, 
+        # so should be pretty static, but we get rid of everything
+        # after the | just in case
+        ASIN = value_string.split('ASIN:')[1].split('|')[0]
+        asin_values.append({"ASIN": ASIN,
+                            "date_added": ''
+        })
+    
+    return asin_values
+
+
+
 def get_items_from_wishlist_page(wishlist_id, page_number):
     """ Take a wishlist ID and a page number, and return a list of all items on that page
 
         Returns a list of dicts with these keys:
-            item_url = URL for that variation of the items
             date_added = date the item was added to the wishlist_page
             ASIN = the amazon ASIN for that variation of the item
 
