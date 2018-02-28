@@ -3,7 +3,7 @@ from flask_mail import Message
 from app import db, mail, app
 from app.models import Item, ParentItem, Image, Offer, LastRefreshed
 from app.amazon_api import get_parent_ASIN, get_item_attributes, get_amazon_api, get_images, get_item_variations_from_parent, get_offers
-from app.wishlist import get_items_from_wishlist
+from app.wishlist import get_items_from_wishlist, get_items_from_local_file
 from datetime import datetime
 
 import os
@@ -23,6 +23,8 @@ logger.addHandler(fh)
 
 WISHLIST_ID = '1ZF0FXNHUY7IG'
 MAILTO = 'pete@petecartwright.com'
+
+DEBUG = True
 
 def get_buybox_price(item):
     ''' take an Item object, return the buybox price
@@ -75,16 +77,18 @@ def find_best_offer_per_wishlist_item():
 
 def add_wishlist_items_to_db(wishlist_items):
     for i in wishlist_items:
-        print 'on item ' + i['ASIN']
+        logger.info('Checking to see if {0} is in our db already'.format(i['ASIN']))
         # check to see if we already have it, if not, add it to the database
         item_to_add = Item.query.filter_by(ASIN=i['ASIN']).filter(Item.live_data==False).first()
 
         if item_to_add is None:
-            print "{0} doesn't exist, creating it".format(i['ASIN'])
+            logger.info('   Don''t have it, adding now')
             item_to_add = Item(ASIN=i['ASIN'])
             item_to_add.is_on_wishlist = True
             db.session.add(item_to_add)
             db.session.commit()
+        else:
+            logger.info('   Yep, we had it')
 
 
 def get_image_sizes(item_image):
@@ -162,12 +166,12 @@ def refresh_item_data(item, amazon_api=None):
     if amazon_api is None:
         amazon_api = get_amazon_api()
 
-    print 'on ' + item.ASIN
-
     ASIN = item.ASIN
+    
+    logger.info('refreshing data for item {0}'.format(ASIN))
 
     # get other item attribs
-    print 'getting attributes'
+    logger.info('   getting attributes')
     item_attributes = get_item_attributes(ASIN, amazon_api=amazon_api)
 
     if item_attributes == {}:
@@ -185,8 +189,8 @@ def refresh_item_data(item, amazon_api=None):
 
     db.session.add(item)
     db.session.commit()
-    print 'got attribs for  ' + ASIN
-
+    logger.info('   got attributes')
+    
     # only get images if it's the wishlist item
     if item.is_on_wishlist:
         # get the main image for the item
@@ -262,13 +266,18 @@ def main():
 
     amazon_api = get_amazon_api()
 
-    # scan the wishlist on Amazon's site
-    wishlist_items = get_items_from_wishlist(WISHLIST_ID)
+    if DEBUG:
+        logger.info('loading items from local file')
+        wishlist_items = get_items_from_local_file()
+    else:
+        # scan the wishlist on Amazon's site
+        logger.info('loading items from amazon')
+        wishlist_items = get_items_from_wishlist(WISHLIST_ID)
 
     # if we didn't get anything back, refresh the prices for what we do have
     if len(wishlist_items) == 0:
         wishlist_items = get_current_wishlist_items()
-        logger.warning('Nothing returned from the last wishlist check - using old data.')
+        logger.info('Nothing returned from the last wishlist check - using old data.')
     else:
         # add all of the wishlist items to the database
         add_wishlist_items_to_db(wishlist_items=wishlist_items)
@@ -279,10 +288,15 @@ def main():
 
     # now that all of the base items are in the wishlist, get all of the parent items
     all_items = Item.query.filter(Item.live_data==False).all()
+
+    if DEBUG:
+        all_items = all_items[:5]
+        print 'limiting all_items to 5'
+
     for i in all_items:
         logger.info('getting parent for {0}'.format(i.ASIN))
         item_parent_ASIN = get_parent_ASIN(ASIN=i.ASIN, amazon_api=amazon_api)
-        logger.info('got parent')
+        logger.info('   got parent')
         # if this parent doesn't exist, create it
         parent = ParentItem.query.filter_by(parent_ASIN=item_parent_ASIN, live_data=False).first()
         if parent is None:
