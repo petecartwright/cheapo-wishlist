@@ -9,6 +9,7 @@ from datetime import datetime
 from lxml import objectify
 import bottlenose
 from bs4 import BeautifulSoup
+
 from amazonconfig import AMAZON_KEY_ID, AMAZON_SECRET_KEY, AMAZON_AFFILIATE_ID
 
 current_date = datetime.now().strftime('%Y%m%d')
@@ -23,9 +24,10 @@ formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(messag
 fh.setFormatter(formatter)
 logger.addHandler(fh)
 
+
 # allow us to print lxml.objectify objects in a nice way
 # can pull this out in prod
-objectify.enable_recursive_str()
+# objectify.enable_recursive_str()
 
 
 def api_error_handler(err):
@@ -51,6 +53,9 @@ def debug_print_lxml(to_print):
 
 
 def get_amazon_api():
+    ''' Create a bottlenose.Amazon object with the Amazon API credentials
+        pulled from the amazonconfig.py file
+    '''
     amazon_api = bottlenose.Amazon(AMAZON_KEY_ID, AMAZON_SECRET_KEY, AMAZON_AFFILIATE_ID, MaxQPS=0.9, ErrorHandler=api_error_handler)
     logger.info('Created new API object successfully')
     return amazon_api
@@ -220,10 +225,10 @@ def get_offers(item, amazon_api=None):
     # first get the main offer - this is the one that "won the Buy Box"
 
     buybox_response = clean_response(amazon_api.ItemLookup(ItemId=ASIN, ResponseGroup="OfferListings"))
-    logger.info('API Call to get buybox for {0}'.format(ASIN))
+    logger.info('       API Call to get buybox for {0}'.format(ASIN))
     buybox_root = objectify.fromstring(buybox_response)
     if buybox_root.Items.Item.Offers.TotalOffers != 0:
-        logger.info('       We do have a buybox for ASIN {0}, name {1}'.format(item.ASIN, item.name))
+        logger.info('        We do have a buybox for ASIN {0}, name {1}'.format(item.ASIN, item.name))
         buybox_condition = buybox_root.Items.Item.Offers.Offer.OfferAttributes.Condition
         buybox_price_amount = buybox_root.Items.Item.Offers.Offer.OfferListing.Price.Amount
         buybox_price_formatted = buybox_root.Items.Item.Offers.Offer.OfferListing.Price.FormattedPrice
@@ -252,7 +257,7 @@ def get_offers(item, amazon_api=None):
     # then get the best third-party offers
 
     tp_response = clean_response(amazon_api.ItemLookup(ItemId=ASIN, ResponseGroup="Offers", Condition='All'))
-    logger.info('API Call to get third-party offers for {0}'.format(ASIN))
+    logger.info('   API Call to get third-party offers for {0}'.format(ASIN))
     tp_root = objectify.fromstring(tp_response)
 
     offerList = tp_root.Items.Item.Offers.iterchildren(tag='Offer')

@@ -8,17 +8,9 @@ from time import sleep
 import logging
 from datetime import datetime
 
-current_date = datetime.now().strftime('%Y%m%d')
-current_folder = os.path.dirname(os.path.realpath(__file__))
-logfile = os.path.join(current_folder, 'log/wishlist_log_{0}.txt'.format(current_date))
+import config
 
-logger = logging.getLogger(__name__)
-
-fh = logging.FileHandler(logfile)
-fh.setLevel(logging.DEBUG)
-formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s', datefmt='%Y-%m-%d %I:%M:%S %p')
-fh.setFormatter(formatter)
-logger.addHandler(fh)
+logger = config.get_logger('wishlist')
 
 BASE_URL = 'https://www.amazon.com/gp/registry/wishlist/'
 PETES_WISHLIST_ID = '1ZF0FXNHUY7IG'
@@ -50,7 +42,7 @@ def get_items_from_local_file(filename=None):
     
     return asin_values
 
-
+    
 
 def get_items_from_wishlist_page(wishlist_id, page_number):
     """ Take a wishlist ID and a page number, and return a list of all items on that page
