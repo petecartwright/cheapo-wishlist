@@ -2,9 +2,11 @@ from flask_mail import Message
 
 from app import db, mail, app
 from app.models import Item, ParentItem, Image, Offer, LastRefreshed
-from app.amazon_api import get_parent_ASIN, get_item_attributes, get_amazon_api, get_images, get_item_variations_from_parent, get_offers
-from app.wishlist import get_items_from_wishlist, get_items_from_local_file
+from amazon_api import get_parent_ASIN, get_item_attributes, get_amazon_api, get_images, get_item_variations_from_parent, get_offers
+from wishlist import get_items_from_wishlist, get_items_from_local_file
 from datetime import datetime
+
+from config import get_logger
 
 import os
 import logging
@@ -13,13 +15,7 @@ current_date = datetime.now().strftime('%Y%m%d')
 current_folder = os.path.dirname(os.path.realpath(__file__))
 logfile = os.path.join(current_folder, 'app/log/refresh_log_{0}.txt'.format(current_date))
 
-logger = logging.getLogger(__name__)
-
-fh = logging.FileHandler(logfile)
-fh.setLevel(logging.DEBUG)
-formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s', datefmt='%Y-%m-%d %I:%M:%S %p')
-fh.setFormatter(formatter)
-logger.addHandler(fh)
+logger = get_logger(__name__)
 
 WISHLIST_ID = '1ZF0FXNHUY7IG'
 MAILTO = 'pete@petecartwright.com'
@@ -43,11 +39,10 @@ def get_buybox_price(item):
 def find_best_offer_per_wishlist_item():
     ''' look at all of the items and offers in the wishlist, then flag one offer per item as the best
     '''
-
+    logger.info('Getting the best offers for each item on the wishlist')
     all_wishlist_items = Item.query.filter(Item.is_on_wishlist==True).filter(Item.live_data==False).all()
 
     for item in all_wishlist_items:
-
         # get the list price for the variant we had in the wishlist
         # get the buybox for this item
         best_offer_price = 999999999      # assuming all of our prices will be lower than a billion dollars
@@ -66,7 +61,7 @@ def find_best_offer_per_wishlist_item():
 
         if best_offer:
             # mark the best offer
-            logger.info('Best Offer for {0} is {1}'.format(item.name, best_offer))
+            logger.info('   Best Offer for {0} is {1}'.format(item.name, best_offer))
             best_offer.best_offer = True
             best_offer.wishlist_item_id = item.id
             db.session.add(best_offer)
@@ -147,9 +142,8 @@ def get_variations(parent_ASIN, amazon_api=None):
     if amazon_api is None:
         amazon_api = get_amazon_api()
 
-    parentASIN = get_parent_ASIN(ASIN=parent_ASIN, amazon_api=amazon_api)
     if parentASIN:
-        variations = get_item_variations_from_parent(parentASIN=parentASIN, amazon_api=amazon_api)
+        variations = get_item_variations_from_parent(parentASIN=parent_ASIN, amazon_api=amazon_api)
         return variations
     else:
         return [parentASIN]
@@ -227,21 +221,33 @@ def remove_old_data():
     ''' Delete everything from the database that's flagged as live_data == True '''
     deleted_items = Item.query.filter(Item.live_data==True).delete()
     logger.debug('deleted {0} items'.format(str(deleted_items)))
+
     deleted_images = Image.query.filter(Image.live_data==True).delete()
     logger.debug('deleted {0} images'.format(str(deleted_images)))
+
     deleted_offers = Offer.query.filter(Offer.live_data==True).delete()
-    logger.debug('deleted {0} offers'.format(str(deleted_images)))
+    logger.debug('deleted {0} offers'.format(str(deleted_offers)))
+
     delete_parents = ParentItem.query.filter(ParentItem.live_data==True).delete()
-    logger.debug('deleted {0} parents'.format(str(deleted_images)))
+    logger.debug('deleted {0} parents'.format(str(delete_parents)))
+    
     db.session.commit()
 
 
 def set_live_data_flag():
 
     updated_items = Item.query.filter().update(dict(live_data=True))
+    logger.debug('set {0} items to Live'.format(str(updated_items)))
+
     updated_parents = ParentItem.query.filter().update(dict(live_data=True))
+    logger.debug('set {0} parents to Live'.format(str(updated_parents)))
+
     updated_offers = Offer.query.filter().update(dict(live_data=True))
+    logger.debug('set {0} offers to Live'.format(str(updated_offers)))
+
     updated_images = Image.query.filter().update(dict(live_data=True))
+    logger.debug('set {0} images to Live'.format(str(updated_images)))
+
     db.session.commit()
 
 
@@ -291,7 +297,7 @@ def main():
 
     if DEBUG:
         all_items = all_items[:5]
-        print 'limiting all_items to 5'
+        logger.info('in DEBUG, limiting all_items to 5')
 
     for i in all_items:
         logger.info('getting parent for {0}'.format(i.ASIN))
@@ -343,14 +349,14 @@ def main():
             # first remove existing offers from database
             item_offers = i.offers.all()
             for x in item_offers:
-                logger.info('trying to remove old offers')
+                logger.info('   trying to remove old offers')
                 db.session.delete(x)
                 db.session.commit()
             # can't get offers for Kindle Books
             if i.product_group == 'eBooks':
-                logger.info("can't get offers for Kindle books")
+                logger.info("   can't get offers for Kindle books")
             else:
-                logger.info('getting offers for {0}'.format(i.ASIN))
+                logger.info('   getting offers for {0}'.format(i.ASIN))
                 offers = get_offers(item=i, amazon_api=amazon_api)
                 for o in offers:
                     new_offer = Offer()
