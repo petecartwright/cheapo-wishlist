@@ -10,19 +10,10 @@ from lxml import objectify
 import bottlenose
 from bs4 import BeautifulSoup
 
+from config import get_logger
 from amazonconfig import AMAZON_KEY_ID, AMAZON_SECRET_KEY, AMAZON_AFFILIATE_ID
 
-current_date = datetime.now().strftime('%Y%m%d')
-current_folder = os.path.dirname(os.path.realpath(__file__))
-logfile = os.path.join(current_folder, 'log/api_log_{0}.txt'.format(current_date))
-
-logger = logging.getLogger('amazon_api')
-
-fh = logging.FileHandler(logfile)
-fh.setLevel(logging.DEBUG)
-formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s', datefmt='%Y-%m-%d %I:%M:%S %p')
-fh.setFormatter(formatter)
-logger.addHandler(fh)
+logger = get_logger('amazon_api')
 
 
 # allow us to print lxml.objectify objects in a nice way
