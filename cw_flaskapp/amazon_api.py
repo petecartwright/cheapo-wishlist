@@ -16,7 +16,7 @@ current_date = datetime.now().strftime('%Y%m%d')
 current_folder = os.path.dirname(os.path.realpath(__file__))
 logfile = os.path.join(current_folder, 'log/api_log_{0}.txt'.format(current_date))
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger('amazon_api')
 
 fh = logging.FileHandler(logfile)
 fh.setLevel(logging.DEBUG)

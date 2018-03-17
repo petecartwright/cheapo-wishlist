@@ -15,7 +15,7 @@ current_date = datetime.now().strftime('%Y%m%d')
 current_folder = os.path.dirname(os.path.realpath(__file__))
 logfile = os.path.join(current_folder, 'app/log/refresh_log_{0}.txt'.format(current_date))
 
-logger = get_logger(__name__)
+logger = get_logger('refresh_data')
 
 WISHLIST_ID = '1ZF0FXNHUY7IG'
 MAILTO = 'pete@petecartwright.com'
