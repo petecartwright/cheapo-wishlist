@@ -142,11 +142,11 @@ def get_variations(parent_ASIN, amazon_api=None):
     if amazon_api is None:
         amazon_api = get_amazon_api()
 
-    if parentASIN:
+    if parent_ASIN:
         variations = get_item_variations_from_parent(parentASIN=parent_ASIN, amazon_api=amazon_api)
         return variations
     else:
-        return [parentASIN]
+        return [parent_ASIN]
 
 
 def refresh_item_data(item, amazon_api=None):
