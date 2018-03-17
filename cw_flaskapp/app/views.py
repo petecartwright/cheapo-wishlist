@@ -150,10 +150,53 @@ def faq():
 @app.route('/items/all')
 def items():
 
-    best_deals = {'results': get_best_deals()}
+    best_deals = get_best_deals()
 
-    return jsonify(best_deals)
+    output_data = {'results': []}
+    
+    for deal in best_deals:
+        
+        data_to_send = {
+                'item_name': deal['best_price_item'].name,
+                'url': deal['best_price_item'].URL,
+                'is_board_game': deal['best_price_item'].is_board_game,
+                'is_cookbook': deal['best_price_item'].is_cookbook,
+                'is_on_wishlist': deal['best_price_item'].is_on_wishlist,
+                'list_price_amount': deal['best_price_item'].list_price_amount,
+                'list_price_formatted': deal['best_price_item'].list_price_formatted,
+                'live_data': deal['best_price_item'].live_data,
+                'parent_id': deal['best_price_item'].parent_id,
+                'product_group': deal['best_price_item'].product_group,
+                'condition': deal['best_offer'].condition,
+                'offer_source': deal['best_offer'].offer_source,
+                'offer_price_amount': deal['best_offer'].offer_price_amount,
+                'offer_price_formatted': deal['best_offer'].offer_price_formatted,
+                'prime_eligible': deal['best_offer'].prime_eligible,
+                'availability': deal['best_offer'].availability,
+                'item_id': deal['best_offer'].item_id,
+                'wishlist_item_id': deal['best_offer'].wishlist_item_id,
+                'best_offer': deal['best_offer'].best_offer,
+                'live_data': deal['best_offer'].live_data,
+                'buybox_price': deal['buybox_price'],
+                'list_price': deal['list_price'],
+                'savings_vs_buybox': deal['savings_vs_buybox'],
+                'savings_vs_list': deal['savings_vs_list'],
+        }
+        
+        output_data['results'].append(data_to_send)
 
+    return jsonify(output_data)
+
+
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
 
 #########################################################################
 #########################################################################
