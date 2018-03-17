@@ -251,33 +251,33 @@ def get_offers(item, amazon_api=None):
     tp_response = clean_response(amazon_api.ItemLookup(ItemId=ASIN, ResponseGroup="Offers", Condition='All'))
     logger.info('   API Call to get third-party offers for {0}'.format(ASIN))
     tp_root = objectify.fromstring(tp_response)
+    if hasattr(tp_root.Items, 'Item'):
+        offerList = tp_root.Items.Item.Offers.iterchildren(tag='Offer')
 
-    offerList = tp_root.Items.Item.Offers.iterchildren(tag='Offer')
+        for o in offerList:
+            condition = o.OfferAttributes.Condition
+            offer_price_amount = o.OfferListing.Price.Amount
+            offer_price_formatted = o.OfferListing.Price.FormattedPrice
+            if o.OfferListing.IsEligibleForPrime == 1:
+                prime_eligible = True
+            else:
+                prime_eligible = False
+            if hasattr(o.OfferListing, 'Availability'):
+                availability = o.OfferListing.Availability
+            else:
+                availability = 'Not sure!'
 
-    for o in offerList:
-        condition = o.OfferAttributes.Condition
-        offer_price_amount = o.OfferListing.Price.Amount
-        offer_price_formatted = o.OfferListing.Price.FormattedPrice
-        if o.OfferListing.IsEligibleForPrime == 1:
-            prime_eligible = True
-        else:
-            prime_eligible = False
-        if hasattr(o.OfferListing, 'Availability'):
-            availability = o.OfferListing.Availability
-        else:
-            availability = 'Not sure!'
+            offer = {'condition': condition,
+                    'offer_source': 'Other Sellers',
+                    'offer_price_amount': offer_price_amount,
+                    'offer_price_formatted': offer_price_formatted,
+                    'prime_eligible': prime_eligible,
+                    'availability': availability,
+                    'item_id': item_id
+                    }
+            offers.append(offer)
 
-        offer = {'condition': condition,
-                 'offer_source': 'Other Sellers',
-                 'offer_price_amount': offer_price_amount,
-                 'offer_price_formatted': offer_price_formatted,
-                 'prime_eligible': prime_eligible,
-                 'availability': availability,
-                 'item_id': item_id
-                }
-        offers.append(offer)
-
-    logger.info('   After others, ASIN {0} ({1}) has {2} offers'.format(item.ASIN, item.name, str(len(offers))))
+        logger.info('   After others, ASIN {0} ({1}) has {2} offers'.format(item.ASIN, item.name, str(len(offers))))
 
     return offers
 
