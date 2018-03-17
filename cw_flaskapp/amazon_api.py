@@ -227,7 +227,8 @@ def get_offers(item, amazon_api=None):
     buybox_response = clean_response(amazon_api.ItemLookup(ItemId=ASIN, ResponseGroup="OfferListings"))
     logger.info('       API Call to get buybox for {0}'.format(ASIN))
     buybox_root = objectify.fromstring(buybox_response)
-    if buybox_root.Items.Item.Offers.TotalOffers != 0:
+
+    if buybox_root.Items.hasattr('Item') and != 0 buybox_root.Items.Item.Offers.TotalOffers != 0:
         logger.info('        We do have a buybox for ASIN {0}, name {1}'.format(item.ASIN, item.name))
         buybox_condition = buybox_root.Items.Item.Offers.Offer.OfferAttributes.Condition
         buybox_price_amount = buybox_root.Items.Item.Offers.Offer.OfferListing.Price.Amount
