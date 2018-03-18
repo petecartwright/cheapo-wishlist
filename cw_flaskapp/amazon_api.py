@@ -118,13 +118,15 @@ def get_book_variations_from_page(ASIN, amazon_api=None, page_number=1):
 
     logger.info('API Call to get variations on {0} (on page {1}'.format(ASIN, str(page_number)))
     root = objectify.fromstring(response)
-    relatedItems = root.Items.Item.RelatedItems
+    
     variations_on_page = []
+    if hasattr(root.Items.Item, 'RelatedItems'):
+        relatedItems = root.Items.Item.RelatedItems
 
-    for x in relatedItems.iterchildren(tag='RelatedItem'):
-        # make sure ASINs are 10 digits
-        variationASIN = str(x.Item.ASIN).zfill(10)
-        variations_on_page.append(variationASIN)
+        for x in relatedItems.iterchildren(tag='RelatedItem'):
+            # make sure ASINs are 10 digits
+            variationASIN = str(x.Item.ASIN).zfill(10)
+            variations_on_page.append(variationASIN)
 
     return variations_on_page
 
@@ -251,7 +253,7 @@ def get_offers(item, amazon_api=None):
     tp_response = clean_response(amazon_api.ItemLookup(ItemId=ASIN, ResponseGroup="Offers", Condition='All'))
     logger.info('   API Call to get third-party offers for {0}'.format(ASIN))
     tp_root = objectify.fromstring(tp_response)
-    if hasattr(tp_root.Items, 'Item'):
+    if hasattr(tp_root.Items, 'Item') and hasattr(tp_root.Items.Item, 'Offers'):
         offerList = tp_root.Items.Item.Offers.iterchildren(tag='Offer')
 
         for o in offerList:
@@ -305,31 +307,33 @@ def get_images(ASIN, amazon_api=None):
         logger.error('  Error in the returned Amazon data: '+ root.Items.Request.Errors.__dict__)
         return {}
 
-    item = root.Items.Item
-
-    smallImage = hasattr(item, 'SmallImage')
-    mediumImage = hasattr(item, 'MediumImage')
-    largeImage = hasattr(item, 'LargeImage')
-
-    # don't always get all three images, so populate what we have
-    ## TODO: combine this code with the get_images_sizes() method
     images = {}
 
-    if smallImage:
-        images['SmallImage'] = {"URL": item.SmallImage.URL,
-                                "Height": item.SmallImage.Height,
-                                "Width": item.SmallImage.Width
-                               }
-    if mediumImage:
-        images['MediumImage'] = {"URL": item.MediumImage.URL,
-                                 "Height": item.MediumImage.Height,
-                                 "Width": item.MediumImage.Width
+    if hasattr(root.Items, 'Item'):
+        item = root.Items.Item
+
+        smallImage = hasattr(item, 'SmallImage')
+        mediumImage = hasattr(item, 'MediumImage')
+        largeImage = hasattr(item, 'LargeImage')
+
+        # don't always get all three images, so populate what we have
+        ## TODO: combine this code with the get_images_sizes() method
+
+        if smallImage:
+            images['SmallImage'] = {"URL": item.SmallImage.URL,
+                                    "Height": item.SmallImage.Height,
+                                    "Width": item.SmallImage.Width
                                 }
-    if largeImage:
-        images['MediumImage'] = {"URL": item.LargeImage.URL,
-                                 "Height": item.LargeImage.Height,
-                                 "Width": item.LargeImage.Width
-                                }
+        if mediumImage:
+            images['MediumImage'] = {"URL": item.MediumImage.URL,
+                                    "Height": item.MediumImage.Height,
+                                    "Width": item.MediumImage.Width
+                                    }
+        if largeImage:
+            images['MediumImage'] = {"URL": item.LargeImage.URL,
+                                    "Height": item.LargeImage.Height,
+                                    "Width": item.LargeImage.Width
+                                    }
 
     return images
 
@@ -382,30 +386,32 @@ def get_item_attributes(ASIN, amazon_api=None):
         ## TODO: This needs better error handling
         return {}
 
-    item = root.Items.Item
+    item_attributes = ''
+    if hasattr(root.Items, 'Item'):
+        item = root.Items.Item
 
-    URL = ''
-    listPriceAmount = ''
-    listPriceFormatted = ''
-    title = ''
-    product_group = ''
+        URL = ''
+        listPriceAmount = ''
+        listPriceFormatted = ''
+        title = ''
+        product_group = ''
 
-    if hasattr(item, 'DetailPageURL'):
-        URL = str(item.DetailPageURL)
-    if hasattr(item.ItemAttributes, 'ListPrice'):
-        listPriceAmount = str(item.ItemAttributes.ListPrice.Amount)
-        listPriceFormatted = str(item.ItemAttributes.ListPrice.FormattedPrice)
-    if hasattr(item.ItemAttributes, 'Title'):
-        title = str(item.ItemAttributes.Title.text.encode('ascii', errors='ignore'))  # had some titles with non-breaking spaces in them. Annoying.
-    if hasattr(item.ItemAttributes, 'ProductGroup'):
-        product_group = str(item.ItemAttributes.ProductGroup)
+        if hasattr(item, 'DetailPageURL'):
+            URL = str(item.DetailPageURL)
+        if hasattr(item.ItemAttributes, 'ListPrice'):
+            listPriceAmount = str(item.ItemAttributes.ListPrice.Amount)
+            listPriceFormatted = str(item.ItemAttributes.ListPrice.FormattedPrice)
+        if hasattr(item.ItemAttributes, 'Title'):
+            title = str(item.ItemAttributes.Title.text.encode('ascii', errors='ignore'))  # had some titles with non-breaking spaces in them. Annoying.
+        if hasattr(item.ItemAttributes, 'ProductGroup'):
+            product_group = str(item.ItemAttributes.ProductGroup)
 
-    item_attributes = {"URL": URL,
-                       "listPriceAmount": listPriceAmount,
-                       "listPriceFormatted": listPriceFormatted,
-                       "title": title,
-                       "product_group": product_group,
-                       "is_cookbook": is_cookbook
-                      }
+        item_attributes = {"URL": URL,
+                        "listPriceAmount": listPriceAmount,
+                        "listPriceFormatted": listPriceFormatted,
+                        "title": title,
+                        "product_group": product_group,
+                        "is_cookbook": is_cookbook
+                        }
 
     return item_attributes
