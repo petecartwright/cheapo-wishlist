@@ -44,26 +44,28 @@ def find_best_offer_per_wishlist_item():
         best_offer_price = 999999999      # assuming all of our prices will be lower than a billion dollars
         best_offer = None
 
+        # if we have a parent for that item
         # get all variants, including that item
-        all_items_under_parent = item.parent_item.items.all()
+        if item.parent_item:
+            all_items_under_parent = item.parent_item.items.all()
 
-        for x in all_items_under_parent:
-            for o in x.offers.all():
-                # reset the best offer tracking from last time
-                o.best_offer = False
-                if o.offer_price_amount < best_offer_price:
-                    best_offer = o
-                    best_offer_price = o.offer_price_amount
+            for x in all_items_under_parent:
+                for o in x.offers.all():
+                    # reset the best offer tracking from last time
+                    o.best_offer = False
+                    if o.offer_price_amount < best_offer_price:
+                        best_offer = o
+                        best_offer_price = o.offer_price_amount
 
-        if best_offer:
-            # mark the best offer
-            logger.info('   Best Offer for {0} is {1}'.format(item.name, best_offer))
-            best_offer.best_offer = True
-            best_offer.wishlist_item_id = item.id
-            db.session.add(best_offer)
-            db.session.commit()
-        else:
-            logger.info('No best offer for {0}'.format(item.name))
+            if best_offer:
+                # mark the best offer
+                logger.info('   Best Offer for {0} is {1}'.format(item.name, best_offer))
+                best_offer.best_offer = True
+                best_offer.wishlist_item_id = item.id
+                db.session.add(best_offer)
+                db.session.commit()
+            else:
+                logger.info('No best offer for {0}'.format(item.name))
 
 
 def add_wishlist_items_to_db(wishlist_items):
