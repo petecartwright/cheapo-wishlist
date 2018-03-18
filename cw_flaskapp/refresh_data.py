@@ -4,7 +4,7 @@ from app import db, mail, app
 from app.models import Item, ParentItem, Image, Offer, LastRefreshed
 from amazon_api import get_parent_ASIN, get_item_attributes, get_amazon_api, get_images, get_item_variations_from_parent, get_offers
 from wishlist import get_items_from_wishlist, get_items_from_local_file
-from datetime import datetime
+from datetime import datetime, date
 
 from config import get_logger
 
@@ -269,7 +269,7 @@ def main():
 
     amazon_api = get_amazon_api()
 
-    todays_date = datetime.date.today()
+    todays_date = date.today()
 
     if DEBUG:
         logger.info('loading items from local file')
