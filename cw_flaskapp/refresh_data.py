@@ -11,10 +11,6 @@ from config import get_logger
 import os
 import logging
 
-current_date = datetime.now().strftime('%Y%m%d')
-current_folder = os.path.dirname(os.path.realpath(__file__))
-logfile = os.path.join(current_folder, 'app/log/refresh_log_{0}.txt'.format(current_date))
-
 logger = get_logger('refresh_data')
 
 WISHLIST_ID = '1ZF0FXNHUY7IG'
@@ -268,9 +264,12 @@ def get_current_wishlist_items():
     
     return items_to_return
 
+
 def main():
 
     amazon_api = get_amazon_api()
+
+    todays_date = datetime.date.today()
 
     if DEBUG:
         logger.info('loading items from local file')
@@ -293,7 +292,11 @@ def main():
     # everything with the live_data flag and then update the new stuff
 
     # now that all of the base items are in the wishlist, get all of the parent items
-    all_items = Item.query.filter(Item.live_data==False).all()
+    all_items = Item.query.filter(Item.live_data==False).filter(.all()
+
+    all_items = Item.query.filter(Item.live_data == False) \
+                          .filter(Item.date_last_checked != todays_date) \
+                          .all()
 
     if DEBUG:
         all_items = all_items[:5]
@@ -316,7 +319,9 @@ def main():
         db.session.commit()
 
     # from that list of parents, get all variations
-    all_parents = ParentItem.query.filter(Item.live_data==False).all()
+    all_parents = ParentItem.query.filter(Item.live_data==False) \
+                                  .filter(Item.date_last_checked != todays_date) \
+                                  .all()
     for p in all_parents:
         # get a list of all ASINS under that parent
         logger.info('getting variations for {0}'.format(p.parent_ASIN))
@@ -339,7 +344,9 @@ def main():
 
     # get attributes (name, price, URL, etc) for all items
     # all all offers for each item
-    all_items = Item.query.filter(Item.live_data==False).all()
+    all_items = Item.query.filter(Item.live_data==False) \
+                          .filter(Item.date_last_checked != todays_date) \
+                          .all()
     for i in all_items:
         logger.info('in the item refresh')
         refresh_item_data(item=i, amazon_api=amazon_api)
