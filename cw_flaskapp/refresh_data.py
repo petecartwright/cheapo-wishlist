@@ -292,7 +292,6 @@ def main():
     # everything with the live_data flag and then update the new stuff
 
     # now that all of the base items are in the wishlist, get all of the parent items
-    all_items = Item.query.filter(Item.live_data==False).filter(.all()
 
     all_items = Item.query.filter(Item.live_data == False) \
                           .filter(Item.date_last_checked != todays_date) \
