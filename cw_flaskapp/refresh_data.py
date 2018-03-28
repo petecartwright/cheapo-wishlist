@@ -1,12 +1,13 @@
 from flask_mail import Message
+from datetime import datetime, date
 
 from app import db, mail, app
 from app.models import Item, ParentItem, Image, Offer, LastRefreshed
 from amazon_api import get_parent_ASIN, get_item_attributes, get_amazon_api, get_images, get_item_variations_from_parent, get_offers
 from wishlist import get_items_from_wishlist, get_items_from_local_file
-from datetime import datetime, date
-
 from config import get_logger
+
+from sqlalchemy import or_
 
 import os
 import logging
@@ -36,7 +37,9 @@ def find_best_offer_per_wishlist_item():
     ''' look at all of the items and offers in the wishlist, then flag one offer per item as the best
     '''
     logger.info('Getting the best offers for each item on the wishlist')
-    all_wishlist_items = Item.query.filter(Item.is_on_wishlist==True).filter(Item.live_data==False).all()
+    all_wishlist_items = Item.query.filter(Item.is_on_wishlist==True) \
+                                   .filter(Item.live_data==False)\
+                                   .all()
 
     for item in all_wishlist_items:
         # get the list price for the variant we had in the wishlist
@@ -296,6 +299,7 @@ def main():
     # now that all of the base items are in the wishlist, get all of the parent items
 
     all_items = Item.query.filter(Item.live_data == False) \
+                          .filter(Item.date_last_checked != None) \
                           .filter(Item.date_last_checked != todays_date) \
                           .all()
 
@@ -346,8 +350,9 @@ def main():
     # get attributes (name, price, URL, etc) for all items
     # all all offers for each item
     all_items = Item.query.filter(Item.live_data==False) \
-                          .filter(Item.date_last_checked != todays_date) \
+                          .filter(or_(Item.date_last_checked == None, Item.date_last_checked != todays_date)) \
                           .all()
+                          
     for i in all_items:
         logger.info('in the item refresh')
         refresh_item_data(item=i, amazon_api=amazon_api)
