@@ -19,7 +19,8 @@ PETES_WISHLIST_ID = '1ZF0FXNHUY7IG'
 def get_items_from_local_file(filename=None):
 
     if filename is None:
-        filename = 'data/wishlist_02_19_2018.html'
+        current_folder = os.path.dirname(os.path.realpath(__file__))
+        filename = os.path.join(current_folder,'data','wishlist_02_19_2018.html')
     
     soup = BeautifulSoup(open(filename), 'html.parser')
 

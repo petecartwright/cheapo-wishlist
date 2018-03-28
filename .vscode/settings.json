@@ -1,0 +1,7 @@
+{
+    "python.pythonPath": "${workspaceFolder}/venv/bin/python",
+    "python.autoComplete.extraPaths": [
+        "${env.SPARK_HOME}/python",
+        "${env.SPARK_HOME}/python/pyspark"
+    ]
+}
