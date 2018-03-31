@@ -299,13 +299,12 @@ def main():
     # now that all of the base items are in the wishlist, get all of the parent items
 
     all_items = Item.query.filter(Item.live_data == False) \
-                          .filter(Item.date_last_checked != None) \
-                          .filter(Item.date_last_checked != todays_date) \
+                          .filter(or_(Item.date_last_checked == None, Item.date_last_checked != todays_date)) \
                           .all()
 
-    if DEBUG:
-        all_items = all_items[:5]
-        logger.info('in DEBUG, limiting all_items to 5')
+    # if DEBUG:
+    #     all_items = all_items[:5]
+    #     logger.info('in DEBUG, limiting all_items to 5')
 
     for i in all_items:
         logger.info('getting parent for {0}'.format(i.ASIN))
@@ -325,7 +324,7 @@ def main():
 
     # from that list of parents, get all variations
     all_parents = ParentItem.query.filter(Item.live_data==False) \
-                                  .filter(Item.date_last_checked != todays_date) \
+                                  .filter(or_(Item.date_last_checked == None, Item.date_last_checked != todays_date)) \
                                   .all()
     for p in all_parents:
         # get a list of all ASINS under that parent
@@ -352,7 +351,7 @@ def main():
     all_items = Item.query.filter(Item.live_data==False) \
                           .filter(or_(Item.date_last_checked == None, Item.date_last_checked != todays_date)) \
                           .all()
-                          
+
     for i in all_items:
         logger.info('in the item refresh')
         refresh_item_data(item=i, amazon_api=amazon_api)
