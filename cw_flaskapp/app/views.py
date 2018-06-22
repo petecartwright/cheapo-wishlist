@@ -124,7 +124,7 @@ def index():
 def all_items():
 
     best_deals = get_best_deals()
-    best_deals_sorted = sorted(best_deals, key=lambda k: k['best_offer_price'])
+    best_deals_sorted = sorted(best_deals, key=lambda k: k['savings_vs_list'])
 
     lastr = LastRefreshed.query.first()
     refreshed_time = lastr.last_refreshed.strftime('%Y-%m-%d %H:%M%p')
