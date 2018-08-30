@@ -6,7 +6,6 @@ from flask import render_template, jsonify
 from app import app, db
 from .models import Item, Offer, LastRefreshed
 
-
 FORMAT = '%(asctime)-15s %(message)s'
 current_folder = os.path.dirname(os.path.realpath(__file__))
 logfile = os.path.join(current_folder, 'log/views.txt')
@@ -75,6 +74,7 @@ def get_best_deals():
 
     return deals_with_info
 
+
 #########################################################################
 #########################################################################
 #
@@ -110,7 +110,7 @@ def index():
     best_by_buybox = sorted(best_deals, key=lambda k: k['savings_vs_buybox'], reverse=True)[0]
     print 'done sorting by buybox'
     cheapest_overall = sorted(best_deals, key=lambda k: k['best_offer_price'])[0]
-    print 'done sorting by buybox'
+    print 'done sorting by cheapest'
 
     return render_template('index.html',
                            best_by_buybox=best_by_buybox,
@@ -164,7 +164,6 @@ def items():
                 'is_on_wishlist': deal['best_price_item'].is_on_wishlist,
                 'list_price_amount': deal['best_price_item'].list_price_amount,
                 'list_price_formatted': deal['best_price_item'].list_price_formatted,
-                'live_data': deal['best_price_item'].live_data,
                 'parent_id': deal['best_price_item'].parent_id,
                 'product_group': deal['best_price_item'].product_group,
                 'condition': deal['best_offer'].condition,
@@ -181,6 +180,10 @@ def items():
                 'list_price': deal['list_price'],
                 'savings_vs_buybox': deal['savings_vs_buybox'],
                 'savings_vs_list': deal['savings_vs_list'],
+                'smallImageURL':  deal['best_price_item'].images.all()[0].smallURL,
+                'mediumImageURL':  deal['best_price_item'].images.all()[0].mediumURL,
+                'largeImageURL':  deal['best_price_item'].images.all()[0].largeURL,
+                'thumbnailImageURL':  deal['best_price_item'].images.all()[0].thumbnailURL
         }
         
         output_data['results'].append(data_to_send)
@@ -188,15 +191,87 @@ def items():
     return jsonify(output_data)
 
 
- 
- 
- 
- 
- 
- 
- 
- 
- 
+@app.route('/items/cheapest_vs_list')
+def cheapest_vs_list():
+
+    best_deals = get_best_deals()
+
+    cheapest_vs_list = sorted(best_deals, key=lambda k: k['savings_vs_list'], reverse=True)[0]
+
+    data_to_return = {
+            'item_name': cheapest_vs_list['best_price_item'].name,
+            'url': cheapest_vs_list['best_price_item'].URL,
+            'is_board_game': cheapest_vs_list['best_price_item'].is_board_game,
+            'is_cookbook': cheapest_vs_list['best_price_item'].is_cookbook,
+            'is_on_wishlist': cheapest_vs_list['best_price_item'].is_on_wishlist,
+            'list_price_amount': cheapest_vs_list['best_price_item'].list_price_amount,
+            'list_price_formatted': cheapest_vs_list['best_price_item'].list_price_formatted,
+            'parent_id': cheapest_vs_list['best_price_item'].parent_id,
+            'product_group': cheapest_vs_list['best_price_item'].product_group,
+            'condition': cheapest_vs_list['best_offer'].condition,
+            'offer_source': cheapest_vs_list['best_offer'].offer_source,
+            'offer_price_amount': cheapest_vs_list['best_offer'].offer_price_amount,
+            'offer_price_formatted': cheapest_vs_list['best_offer'].offer_price_formatted,
+            'prime_eligible': cheapest_vs_list['best_offer'].prime_eligible,
+            'availability': cheapest_vs_list['best_offer'].availability,
+            'item_id': cheapest_vs_list['best_offer'].item_id,
+            'wishlist_item_id': cheapest_vs_list['best_offer'].wishlist_item_id,
+            'best_offer': cheapest_vs_list['best_offer'].best_offer,
+            'live_data': cheapest_vs_list['best_offer'].live_data,
+            'buybox_price': cheapest_vs_list['buybox_price'],
+            'list_price': cheapest_vs_list['list_price'],
+            'savings_vs_buybox': cheapest_vs_list['savings_vs_buybox'],
+            'savings_vs_list': cheapest_vs_list['savings_vs_list'],
+            'smallImageURL':  cheapest_vs_list['best_price_item'].images.all()[0].smallURL,
+            'mediumImageURL':  cheapest_vs_list['best_price_item'].images.all()[0].mediumURL,
+            'largeImageURL':  cheapest_vs_list['best_price_item'].images.all()[0].largeURL,
+            'thumbnailImageURL':  cheapest_vs_list['best_price_item'].images.all()[0].thumbnailURL
+    }
+
+    return jsonify(data_to_return)
+
+
+
+@app.route('/items/cheapest_overall')
+def cheapest_overall():
+
+    best_deals = get_best_deals()
+
+    cheapest_overall = sorted(best_deals, key=lambda k: k['best_offer_price'])[0]
+    
+    data_to_return = {
+            'item_name': cheapest_overall['best_price_item'].name,
+            'url': cheapest_overall['best_price_item'].URL,
+            'is_board_game': cheapest_overall['best_price_item'].is_board_game,
+            'is_cookbook': cheapest_overall['best_price_item'].is_cookbook,
+            'is_on_wishlist': cheapest_overall['best_price_item'].is_on_wishlist,
+            'list_price_amount': cheapest_overall['best_price_item'].list_price_amount,
+            'list_price_formatted': cheapest_overall['best_price_item'].list_price_formatted,
+            'parent_id': cheapest_overall['best_price_item'].parent_id,
+            'product_group': cheapest_overall['best_price_item'].product_group,
+            'condition': cheapest_overall['best_offer'].condition,
+            'offer_source': cheapest_overall['best_offer'].offer_source,
+            'offer_price_amount': cheapest_overall['best_offer'].offer_price_amount,
+            'offer_price_formatted': cheapest_overall['best_offer'].offer_price_formatted,
+            'prime_eligible': cheapest_overall['best_offer'].prime_eligible,
+            'availability': cheapest_overall['best_offer'].availability,
+            'item_id': cheapest_overall['best_offer'].item_id,
+            'wishlist_item_id': cheapest_overall['best_offer'].wishlist_item_id,
+            'best_offer': cheapest_overall['best_offer'].best_offer,
+            'live_data': cheapest_overall['best_offer'].live_data,
+            'buybox_price': cheapest_overall['buybox_price'],
+            'list_price': cheapest_overall['list_price'],
+            'savings_vs_buybox': cheapest_overall['savings_vs_buybox'],
+            'savings_vs_list': cheapest_overall['savings_vs_list'],
+            'smallImageURL':  cheapest_overall['best_price_item'].images.all()[0].smallURL,
+            'mediumImageURL':  cheapest_overall['best_price_item'].images.all()[0].mediumURL,
+            'largeImageURL':  cheapest_overall['best_price_item'].images.all()[0].largeURL,
+            'thumbnailImageURL':  cheapest_overall['best_price_item'].images.all()[0].thumbnailURL
+    }
+
+    return jsonify(data_to_return)
+
+
 
 #########################################################################
 #########################################################################
