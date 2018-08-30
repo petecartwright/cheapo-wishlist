@@ -38,7 +38,6 @@ def find_best_offer_per_wishlist_item():
     '''
     logger.info('Getting the best offers for each item on the wishlist')
     all_wishlist_items = Item.query.filter(Item.is_on_wishlist==True) \
-                                   .filter(Item.live_data==False)\
                                    .all()
 
     for item in all_wishlist_items:
@@ -75,7 +74,7 @@ def add_wishlist_items_to_db(wishlist_items):
     for i in wishlist_items:
         logger.info('Checking to see if {0} is in our db already'.format(i['ASIN']))
         # check to see if we already have it, if not, add it to the database
-        item_to_add = Item.query.filter_by(ASIN=i['ASIN']).filter(Item.live_data==False).first()
+        item_to_add = Item.query.filter_by(ASIN=i['ASIN']).first()
 
         if item_to_add is None:
             logger.info('   Don''t have it, adding now')
@@ -189,7 +188,6 @@ def refresh_item_data(item, amazon_api=None):
     # only get images if it's the wishlist item
     if item.is_on_wishlist:
         # get the main image for the item
-        ## TODO: there are multiple images for each prod, it would be nice to get them all.
         item_image = get_images(ASIN=ASIN, amazon_api=amazon_api)
         image_sizes = get_image_sizes(item_image)
         new_item_image = Image(smallURL=str(image_sizes['smallURL']),
@@ -218,56 +216,10 @@ def update_last_refreshed():
     return deleted_last_refreshed
 
 
-def remove_old_data():
-    ''' Delete everything from the database that's flagged as live_data == True '''
-    deleted_items = Item.query.filter(Item.live_data==True).delete()
-    logger.debug('deleted {0} items'.format(str(deleted_items)))
-
-    deleted_images = Image.query.filter(Image.live_data==True).delete()
-    logger.debug('deleted {0} images'.format(str(deleted_images)))
-
-    deleted_offers = Offer.query.filter(Offer.live_data==True).delete()
-    logger.debug('deleted {0} offers'.format(str(deleted_offers)))
-
-    delete_parents = ParentItem.query.filter(ParentItem.live_data==True).delete()
-    logger.debug('deleted {0} parents'.format(str(delete_parents)))
-    
-    db.session.commit()
-
-
-def set_live_data_flag():
-
-    updated_items = Item.query.filter().update(dict(live_data=True))
-    logger.debug('set {0} items to Live'.format(str(updated_items)))
-
-    updated_parents = ParentItem.query.filter().update(dict(live_data=True))
-    logger.debug('set {0} parents to Live'.format(str(updated_parents)))
-
-    updated_offers = Offer.query.filter().update(dict(live_data=True))
-    logger.debug('set {0} offers to Live'.format(str(updated_offers)))
-
-    updated_images = Image.query.filter().update(dict(live_data=True))
-    logger.debug('set {0} images to Live'.format(str(updated_images)))
-
-    db.session.commit()
-
-
 def send_completion_message():
     msg = Message("WSIBPT has refreshed", sender="pete.cartwright@gmail.com", recipients=[MAILTO])
     with app.app_context():
         mail.send(msg)
-
-
-def get_current_wishlist_items():
-    ''' We call this if we don't get anything back from our web scraping
-        Returns a dict with all current wishlist items, with ASIN and date added,
-            just like the real wishlist would
-    '''
-    all_items = Item.query.filter(Item.is_on_wishlist==True).with_entities(Item.ASIN, Item.date_last_checked).all()
-
-    items_to_return = [{"ASIN": x[0], "date_last_checked": x[1]} for x in all_items]
-    
-    return items_to_return
 
 
 def main():
@@ -284,47 +236,33 @@ def main():
         logger.info('loading items from amazon')
         wishlist_items = get_items_from_wishlist(WISHLIST_ID)
 
-    # if we didn't get anything back, refresh the prices for what we do have
-    if len(wishlist_items) == 0:
-        wishlist_items = get_current_wishlist_items()
-        logger.info('Nothing returned from the last wishlist check - using old data.')
-    else:
-        # add all of the wishlist items to the database
-        add_wishlist_items_to_db(wishlist_items=wishlist_items)
-
-    # we're using a live_data flag to indicate which are live on the site and which aren't
-    # everything we're updating won't have a live data flag until the end, where we delete
-    # everything with the live_data flag and then update the new stuff
+    add_wishlist_items_to_db(wishlist_items=wishlist_items)
 
     # now that all of the base items are in the wishlist, get all of the parent items
 
-    all_items = Item.query.filter(Item.live_data == False) \
-                          .filter(or_(Item.date_last_checked == None, Item.date_last_checked != todays_date)) \
+    all_items = Item.query.filter(or_(Item.date_last_checked == None, Item.date_last_checked != todays_date)) \
                           .all()
-
-    # if DEBUG:
-    #     all_items = all_items[:5]
-    #     logger.info('in DEBUG, limiting all_items to 5')
 
     for i in all_items:
         logger.info('getting parent for {0}'.format(i.ASIN))
-        item_parent_ASIN = get_parent_ASIN(ASIN=i.ASIN, amazon_api=amazon_api)
-        logger.info('   got parent')
-        # if this parent doesn't exist, create it
-        parent = ParentItem.query.filter_by(parent_ASIN=item_parent_ASIN, live_data=False).first()
-        if parent is None:
-            logger.info("parent doesn't exist, creating")
-            parent = ParentItem(parent_ASIN=item_parent_ASIN)
-            db.session.add(parent)
+        # if we don't have a parent, get one
+        if i.parent_item is None:    
+            item_parent_ASIN = get_parent_ASIN(ASIN=i.ASIN, amazon_api=amazon_api)
+            logger.info('   got parent')
+            # if this parent doesn't exist, create it
+            parent = ParentItem.query.filter_by(parent_ASIN=item_parent_ASIN).first()
+            if parent is None:
+                logger.info("parent doesn't exist, creating")
+                parent = ParentItem(parent_ASIN=item_parent_ASIN)
+                db.session.add(parent)
+                db.session.commit()
+            # add the parent to the item
+            i.parent_item = parent
+            db.session.add(i)
             db.session.commit()
-        # add the parent to the item
-        i.parent_item = parent
-        db.session.add(i)
-        db.session.commit()
 
     # from that list of parents, get all variations
-    all_parents = ParentItem.query.filter(Item.live_data==False) \
-                                  .filter(or_(Item.date_last_checked == None, Item.date_last_checked != todays_date)) \
+    all_parents = ParentItem.query.filter(or_(Item.date_last_checked == None, Item.date_last_checked != todays_date)) \
                                   .all()
     for p in all_parents:
         # get a list of all ASINS under that parent
@@ -348,8 +286,7 @@ def main():
 
     # get attributes (name, price, URL, etc) for all items
     # all all offers for each item
-    all_items = Item.query.filter(Item.live_data==False) \
-                          .filter(or_(Item.date_last_checked == None, Item.date_last_checked != todays_date)) \
+    all_items = Item.query.filter(or_(Item.date_last_checked == None, Item.date_last_checked != todays_date)) \
                           .all()
 
     for i in all_items:
@@ -389,8 +326,6 @@ def main():
     update_last_refreshed()
 
     remove_old_data()
-
-    set_live_data_flag()
 
     logger.info('Finished run at {0}'.format(datetime.now().strftime('%H:%M %Y-%m-%d')))
 
