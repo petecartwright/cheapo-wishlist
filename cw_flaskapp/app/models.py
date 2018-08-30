@@ -78,3 +78,36 @@ class LastRefreshed(db.Model):
 
     def __repr__(self):
         return '<Last refreshed at {0}>'.format(str(self.last_refreshed))
+
+
+class BestDeal(db.Model):
+    id                      = db.Column(db.Integer, primary_key=True)
+    last_refreshed          = db.Column(db.DateTime)
+    item_name               = db.Column(db.String(400))
+    url                     = db.Column(db.String(1000))
+    is_board_game           = db.Column(db.Boolean)
+    is_cookbook             = db.Column(db.Boolean)
+    is_on_wishlist          = db.Column(db.Boolean)
+    list_price_amount       = db.Column(db.Integer)
+    list_price_formatted    = db.Column(db.String(40))
+    product_group           = db.Column(db.String(40))
+    condition               = db.Column(db.String(200))
+    offer_source            = db.Column(db.String(100))
+    offer_price_amount      = db.Column(db.Integer)
+    offer_price_formatted   = db.Column(db.String(40))
+    prime_eligible          = db.Column(db.Boolean)
+    availability            = db.Column(db.String(200))
+    item_id                 = db.Column(db.Integer)
+    wishlist_item_id        = db.Column(db.Integer)
+    live_data               = db.Column(db.Boolean)
+    buybox_price            = db.Column(db.Integer)
+    list_price              = db.Column(db.Integer)
+    savings_vs_buybox       = db.Column(db.Integer)
+    savings_vs_list         = db.Column(db.Integer)
+    smallImageURL           = db.Column(db.String(400))
+    mediumImageURL          = db.Column(db.String(400))
+    largeImageURL           = db.Column(db.String(400))
+    thumbnailImageURL       = db.Column(db.String(400))
+
+    def __repr__(self):
+        return '<Best Deal on {0}>'.format(self.item_name)
