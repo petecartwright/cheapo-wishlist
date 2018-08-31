@@ -15,7 +15,7 @@ logger = config.get_logger('wishlist')
 BASE_URL = 'https://www.amazon.com/gp/registry/wishlist/'
 PETES_WISHLIST_ID = '1ZF0FXNHUY7IG'
 
-  
+
 def get_items_from_local_file(filename=None):
 
     if filename is None:
