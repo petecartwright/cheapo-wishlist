@@ -221,7 +221,10 @@ def get_offers(item, amazon_api=None):
     logger.info('       API Call to get buybox for {0}'.format(ASIN))
     buybox_root = objectify.fromstring(buybox_response)
 
-    if hasattr(buybox_root.Items, 'Item') and buybox_root.Items.Item.Offers.TotalOffers != 0:
+    # make sure there's a price. ex: If it's the string'too low to display', we don't want it
+    has_valid_offers = hasattr(buybox_root.Items, 'Item') and buybox_root.Items.Item.Offers.TotalOffers != 0 and hasattr(buybox_root.Items.Item.Offers.Offer.OfferListing.Price, 'Amount')
+
+    if has_valid_offers:
         logger.info('        We do have a buybox for ASIN {0}, name {1}'.format(item.ASIN, item.name))
         buybox_condition = buybox_root.Items.Item.Offers.Offer.OfferAttributes.Condition
         buybox_price_amount = buybox_root.Items.Item.Offers.Offer.OfferListing.Price.Amount
