@@ -38,6 +38,7 @@ def find_best_offer_per_wishlist_item():
     '''
     logger.info('Getting the best offers for each item on the wishlist')
     all_wishlist_items = Item.query.filter(Item.is_on_wishlist==True) \
+                                   .filter(Item.name != None) \
                                    .all()
 
     for item in all_wishlist_items:
@@ -63,11 +64,27 @@ def find_best_offer_per_wishlist_item():
                 # mark the best offer
                 logger.info('   Best Offer for {0} is {1}'.format(item.name, best_offer))
                 best_offer.best_offer = True
+                best_offer.savings_vs_list = item.list_price_amount - best_offer_price
                 best_offer.wishlist_item_id = item.id
                 db.session.add(best_offer)
                 db.session.commit()
             else:
                 logger.info('No best offer for {0}'.format(item.name))
+
+
+def find_cheapest_overall_and_vs_list():
+
+    all_offers = Offer.query.filter(Offer.best_offer == True).all()
+
+    cheapest_overall_offer = sorted(all_offers, key=lambda k: k.offer_price_amount)[0]
+    cheapest_overall_offer.cheapest_overall = True
+
+    cheapest_offer_vs_list = sorted(all_offers, key=lambda k: k.savings_vs_list, reverse=True)[0]
+    cheapest_offer_vs_list.cheapest_vs_list = True
+
+    db.session.add(cheapest_overall_offer)
+    db.session.add(cheapest_offer_vs_list)
+    db.session.commit()
 
 
 def add_wishlist_items_to_db(wishlist_items):
@@ -84,6 +101,56 @@ def add_wishlist_items_to_db(wishlist_items):
             db.session.commit()
         else:
             logger.info('   Yep, we had it')
+
+
+def get_all_parents(all_items):
+
+    for i in all_items:
+        logger.info('getting parent for {0}'.format(i.ASIN))
+        # if we don't have a parent, get one
+        if i.parent_item:
+            logger.info('already have parent for {0}'.format(i.ASIN))
+        else:    
+            item_parent_ASIN = get_parent_ASIN(ASIN=i.ASIN, amazon_api=amazon_api)
+            logger.info('   got parent')
+            # if this parent doesn't exist, create it
+            parent = ParentItem.query.filter_by(parent_ASIN=item_parent_ASIN).first()
+            if parent is None:
+                logger.info("parent doesn't exist, creating")
+                parent = ParentItem(parent_ASIN=item_parent_ASIN)
+                db.session.add(parent)
+                db.session.commit()
+            # add the parent to the item
+            i.parent_item = parent
+            db.session.add(i)
+            db.session.commit()
+
+
+def get_all_variations_under_parents(parent_items, amazon_api):
+
+    total_parents_to_check = len(parent_items)
+    index = 1
+
+    for p in parent_items:
+        percent_done = str(round(100 * (float(index) / float(total_parents_to_check)), 2))
+        logger.info('getting variations for {0} ({1} / {2}, {3}%)'.format(p.parent_ASIN, index, total_parents_to_check, percent_done))
+        # get a list of all ASINS under that parent
+        logger.info('getting variations for {0}'.format(p.parent_ASIN))
+        variations = get_variations(parent_ASIN=p.parent_ASIN, amazon_api=amazon_api)
+        logger.info('Found {0} variations for {1}'.format(len(variations), p.parent_ASIN))
+        for v in variations:
+            logger.info('   Checking for existence of variation {0}'.format(v))
+            var = Item.query.filter_by(ASIN=v).all()
+            if len(var) == 0:
+                logger.info("       Don't have this one, adding.")
+                # if we don't have these variations already, add them to the database
+                # with the correct parent
+                new_variation = Item(ASIN=v, parent_item=p)
+                db.session.add(new_variation)
+                db.session.commit()
+            else:
+                logger.info("       Have it.")
+        index +=1
 
 
 def get_image_sizes(item_image):
@@ -164,29 +231,30 @@ def refresh_item_data(item, amazon_api=None):
     
     logger.info('refreshing data for item {0}'.format(ASIN))
 
-    # get other item attribs
+    # get other item attribs, only if we don't already have them
     logger.info('   getting attributes')
-    item_attributes = get_item_attributes(ASIN, amazon_api=amazon_api)
+    if item.name is None:
+        item_attributes = get_item_attributes(ASIN, amazon_api=amazon_api)
 
-    if item_attributes == {}:
-        return False
+        if item_attributes == {}:
+          return False
 
-    # using .get() here because it will default to None is the key is
-    # not in the dict, and the API is not reliable about sending everything back
-    item.list_price_amount = item_attributes.get('listPriceAmount')
-    item.list_price_formatted = item_attributes.get('listPriceFormatted')
-    item.product_group = item_attributes.get('product_group')
-    item.name = item_attributes.get('title')
-    item.URL = item_attributes.get('URL')
-    item.date_last_checked = datetime.date(datetime.today())
-    item.is_cookbook = item_attributes.get('is_cookbook') 
+        # using .get() here because it will default to None is the key is
+        # not in the dict, and the API is not reliable about sending everything back
+        item.list_price_amount = item_attributes.get('listPriceAmount')
+        item.list_price_formatted = item_attributes.get('listPriceFormatted')
+        item.product_group = item_attributes.get('product_group')
+        item.name = item_attributes.get('title')
+        item.URL = item_attributes.get('URL')
+        item.date_last_checked = datetime.date(datetime.today())
+        item.is_cookbook = item_attributes.get('is_cookbook') 
 
-    db.session.add(item)
-    db.session.commit()
-    logger.info('   got attributes')
+        db.session.add(item)
+        db.session.commit()
+        logger.info('   got attributes')
     
     # only get images if it's the wishlist item
-    if item.is_on_wishlist:
+    if item.is_on_wishlist and len(item.images.all()) == 0:
         # get the main image for the item
         item_image = get_images(ASIN=ASIN, amazon_api=amazon_api)
         image_sizes = get_image_sizes(item_image)
@@ -222,6 +290,15 @@ def send_completion_message():
         mail.send(msg)
 
 
+
+def find_cheapest_overall_and_vs_list():
+
+    all_best_offers = Offer.query.filter(Offer.best_offer == True).all()
+
+    cheapest_vs_list = sorted(all_best_offers, key=lambda k: k['savings_vs_list'], reverse=True)[0]
+    cheapest_overall = sorted(all_best_offers, key=lambda k: k['offer_price_amount'], reverse=True)[0]
+
+
 def main():
 
     amazon_api = get_amazon_api()
@@ -240,57 +317,27 @@ def main():
 
     # now that all of the base items are in the wishlist, get all of the parent items
 
-    all_items = Item.query.filter(or_(Item.date_last_checked == None, Item.date_last_checked != todays_date)) \
-                          .all()
+    all_items = Item.query.filter(or_(Item.date_last_checked == None, Item.date_last_checked != todays_date)).all()
 
-    for i in all_items:
-        logger.info('getting parent for {0}'.format(i.ASIN))
-        # if we don't have a parent, get one
-        if i.parent_item is None:    
-            item_parent_ASIN = get_parent_ASIN(ASIN=i.ASIN, amazon_api=amazon_api)
-            logger.info('   got parent')
-            # if this parent doesn't exist, create it
-            parent = ParentItem.query.filter_by(parent_ASIN=item_parent_ASIN).first()
-            if parent is None:
-                logger.info("parent doesn't exist, creating")
-                parent = ParentItem(parent_ASIN=item_parent_ASIN)
-                db.session.add(parent)
-                db.session.commit()
-            # add the parent to the item
-            i.parent_item = parent
-            db.session.add(i)
-            db.session.commit()
-
+    get_all_parents(all_items=all_items)
+            
     # from that list of parents, get all variations
-    all_parents = ParentItem.query.filter(or_(Item.date_last_checked == None, Item.date_last_checked != todays_date)) \
-                                  .all()
-    for p in all_parents:
-        # get a list of all ASINS under that parent
-        logger.info('getting variations for {0}'.format(p.parent_ASIN))
-        variations = get_variations(parent_ASIN=p.parent_ASIN, amazon_api=amazon_api)
-        logger.info('Found {0} variations for {1}'.format(len(variations), p.parent_ASIN))
-        for v in variations:
-            logger.info('   Checking for existence of variation {0}'.format(v))
-            var = Item.query.filter_by(ASIN=v).all()
-            if len(var) == 0:
-                logger.info("       Don't have this one, adding.")
-                # if we don't have these variations already, add them to the database
-                # with the correct parent
-                new_variation = Item(ASIN=v, parent_item=p)
-                db.session.add(new_variation)
-                db.session.commit()
-            else:
-                logger.info("       Have it.")
+    all_parents = ParentItem.query.filter(or_(Item.date_last_checked == None, Item.date_last_checked != todays_date)).all()
+    
+    get_all_variations_under_parents(parent_items=all_parents, amazon_api=amazon_api)
 
     ## Next step is to get the item data for everything in the database
 
     # get attributes (name, price, URL, etc) for all items
     # all all offers for each item
-    all_items = Item.query.filter(or_(Item.date_last_checked == None, Item.date_last_checked != todays_date)) \
-                          .all()
+    all_items_with_variations = Item.query.filter(or_(Item.date_last_checked == None, Item.date_last_checked != todays_date)).all()
 
-    for i in all_items:
-        logger.info('in the item refresh')
+    number_of_items_to_check = len(all_items_with_variations)
+    index = 1
+
+    for i in all_items_with_variations:
+        percent_done = str(round(100 * (float(index) / float(number_of_items_to_check)), 2))
+        logger.info('in the item refresh for {0} ({1} / {2}, {3}%)'.format(i.ASIN, index, number_of_items_to_check, percent_done))
         refresh_item_data(item=i, amazon_api=amazon_api)
         # cant' get info on some - looks like maybe weapons?
         if i.name is not None:
@@ -298,7 +345,7 @@ def main():
             # first remove existing offers from database
             item_offers = i.offers.all()
             for x in item_offers:
-                logger.info('   trying to remove old offers')
+                logger.info('   removing old offers for {0}'.format(i.ASIN))
                 db.session.delete(x)
                 db.session.commit()
             # can't get offers for Kindle Books
@@ -319,13 +366,14 @@ def main():
                     new_offer.item = i
                     db.session.add(new_offer)
                     db.session.commit()
+        index += 1
 
     # now let's see what the best deals are!
     find_best_offer_per_wishlist_item()
 
-    update_last_refreshed()
+    find_cheapest_overall_and_vs_list()
 
-    remove_old_data()
+    update_last_refreshed()
 
     logger.info('Finished run at {0}'.format(datetime.now().strftime('%H:%M %Y-%m-%d')))
 
