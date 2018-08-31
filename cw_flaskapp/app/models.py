@@ -66,6 +66,9 @@ class Offer(db.Model):
     wishlist_item_id        = db.Column(db.Integer)
     best_offer              = db.Column(db.Boolean, default=False)
     live_data               = db.Column(db.Boolean, default=False)
+    savings_vs_list         = db.Column(db.Integer)
+    cheapest_overall        = db.Column(db.Boolean, default=False)
+    cheapest_vs_list        = db.Column(db.Boolean, default=False)
 
     def __repr__(self):
 
