@@ -333,7 +333,7 @@ def get_images(ASIN, amazon_api=None):
                                     "Width": item.MediumImage.Width
                                     }
         if largeImage:
-            images['MediumImage'] = {"URL": item.LargeImage.URL,
+            images['LargeImage'] = {"URL": item.LargeImage.URL,
                                     "Height": item.LargeImage.Height,
                                     "Width": item.LargeImage.Width
                                     }
