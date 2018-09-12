@@ -9,21 +9,21 @@ class ParentItem(db.Model):
 
 
 class Item(db.Model):
-    id                      = db.Column(db.Integer, primary_key=True)
-    ASIN                    = db.Column(db.String(40))
-    URL                     = db.Column(db.String(1000))
-    list_price_amount       = db.Column(db.Integer)
-    list_price_formatted    = db.Column(db.String(40))
-    name                    = db.Column(db.String(400))
-    product_group           = db.Column(db.String(40))
-    date_last_checked       = db.Column(db.Date)
-    images                  = db.relationship('Image', backref='item', lazy='dynamic')
-    offers                  = db.relationship('Offer', backref='item', lazy='dynamic')
-    parent_id               = db.Column(db.Integer, db.ForeignKey('parent_item.id'))
-    is_on_wishlist          = db.Column(db.Boolean, default=False)
-    is_cookbook             = db.Column(db.Boolean, default=False)
-    is_board_game           = db.Column(db.Boolean, default=False)
-    live_data               = db.Column(db.Boolean, default=False)
+    id                          = db.Column(db.Integer, primary_key=True)
+    ASIN                        = db.Column(db.String(40))
+    URL                         = db.Column(db.String(1000))
+    list_price_amount           = db.Column(db.Integer)
+    list_price_formatted        = db.Column(db.String(40))
+    name                        = db.Column(db.String(400))
+    product_group               = db.Column(db.String(40))
+    date_last_checked           = db.Column(db.Date)
+    images                      = db.relationship('Image', backref='item', lazy='dynamic')
+    offers                      = db.relationship('Offer', backref='item', lazy='dynamic')
+    parent_id                   = db.Column(db.Integer, db.ForeignKey('parent_item.id'))
+    is_on_wishlist              = db.Column(db.Boolean, default=False)
+    is_cookbook                 = db.Column(db.Boolean, default=False)
+    is_board_game               = db.Column(db.Boolean, default=False)
+    live_data                   = db.Column(db.Boolean, default=False)
 
     def __init__(self, ASIN, parent_item=None):
         self.ASIN = ASIN
@@ -51,7 +51,7 @@ class Image(db.Model):
     live_data       = db.Column(db.Boolean, default=False)
 
     def __repr__(self):
-        return '<Image %r>' % (self.id)
+        return '<Image %r for %s>' % (self.id, self.item.name)
 
 
 class Offer(db.Model):
