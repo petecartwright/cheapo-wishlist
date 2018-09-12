@@ -1,5 +1,5 @@
 import React, { Component } from "react";
-import { Table, Row, Col, Image } from "react-bootstrap";
+import { Table } from "react-bootstrap";
 import axios from "axios";
 import Header from "./Header";
 import "./App.css";
@@ -23,7 +23,6 @@ class AllDeals extends Component {
   }
 
   render() {
-
     return (
       <div>
         <Header />
