@@ -1,5 +1,5 @@
 import React, { Component } from "react";
-import { Grid, Row, Col, Image, PageHeader } from "react-bootstrap";
+import { Grid, Row, Col } from "react-bootstrap";
 import axios from "axios";
 import Header from "./Header";
 import "./App.css";
