@@ -37,7 +37,7 @@ def find_best_offer_per_wishlist_item():
     ''' look at all of the items and offers in the wishlist, then flag one offer per item as the best
     '''
     logger.info('Getting the best offers for each item on the wishlist')
-    all_wishlist_items = Item.query.filter(Item.is_on_wishlist==True) \
+    all_wishlist_items = Item.query.filter(Item.is_on_wishlist == True) \
                                    .filter(Item.name != None) \
                                    .all()
 
@@ -46,6 +46,7 @@ def find_best_offer_per_wishlist_item():
         # get the buybox for this item
         best_offer_price = 999999999      # assuming all of our prices will be lower than a billion dollars
         best_offer = None
+        buybox_price = get_buybox_price(item)
 
         # if we have a parent for that item
         # get all variants, including that item
@@ -54,17 +55,26 @@ def find_best_offer_per_wishlist_item():
 
             for x in all_items_under_parent:
                 for o in x.offers.all():
-                    # reset the best offer tracking from last time
+                    # reset the best offer tracking from last item
                     o.best_offer = False
                     if o.offer_price_amount < best_offer_price:
                         best_offer = o
                         best_offer_price = o.offer_price_amount
 
             if best_offer:
+                # we need a price to compare it to.
+                # if we have the list price, use that. If not, use the buybox
+                # if not, use 0
+                comparison_price = 0
+                if item.list_price_amount:
+                    comparison_price = item.list_price_amount
+                elif buybox_price:
+                    comparison_price = buybox_price
+
                 # mark the best offer
                 logger.info('   Best Offer for {0} is {1}'.format(item.name, best_offer))
                 best_offer.best_offer = True
-                best_offer.savings_vs_list = item.list_price_amount - best_offer_price
+                best_offer.savings_vs_list = comparison_price - best_offer_price
                 best_offer.wishlist_item_id = item.id
                 db.session.add(best_offer)
                 db.session.commit()
@@ -72,8 +82,55 @@ def find_best_offer_per_wishlist_item():
                 logger.info('No best offer for {0}'.format(item.name))
 
 
+def get_images_for_best_offer_items(amazon_api):
+
+    best_offers = Offer.query.filter( Offer.best_offer == True ).all()
+    
+    number_of_offers = len(best_offers)
+    index = 1
+
+    for offer in best_offers:
+        item = offer.item 
+        percent_complete = round((float(index) / float(number_of_offers) * 100 ), 2) 
+        logger.info('   Getting image for {0} ({1} of {2}, {3}%'.format(item.name, index, number_of_offers, percent_complete))
+        
+        # only get images if we don't have any
+        if len(item.images.all()):
+            logger.info('   Already have it, moving on')
+        else:
+            ASIN = item.ASIN
+            # get the main image for the item
+            item_image = get_images(ASIN=ASIN, amazon_api=amazon_api)
+            image_sizes = get_image_sizes(item_image)
+            new_item_image = Image(smallURL=str(image_sizes['smallURL']),
+                                smallHeight=int(image_sizes['smallHeight'] or 0),
+                                smallWidth=int(image_sizes['smallWidth'] or 0),
+                                mediumURL=str(image_sizes['mediumURL']),
+                                mediumHeight=int(image_sizes['mediumHeight'] or 0),
+                                mediumWidth=int(image_sizes['mediumWidth'] or 0),
+                                largeURL=str(image_sizes['largeURL']),
+                                largeHeight=int(image_sizes['largeHeight'] or 0),
+                                largeWidth=int(image_sizes['largeWidth'] or 0),
+                                item_id=item.id)
+            db.session.add(new_item_image)
+            db.session.commit()
+
+        index += 1
+
+
 def find_cheapest_overall_and_vs_list():
 
+    # remove any offers that are currently cheapest
+    current_cheapest = Offer.query.filter( Offer.cheapest_overall == True).first()
+    current_cheapest.cheapest_overall = False
+    db.session.add(current_cheapest)
+
+    current_cheapest_vs = Offer.query.filter( Offer.cheapest_vs_list == True).first()
+    current_cheapest_vs.cheapest_vs_list = False
+    db.session.add(current_cheapest_vs)
+    db.session.commit()
+
+    # now identify the NEW cheapest overall and cheapest vs list
     all_offers = Offer.query.filter(Offer.best_offer == True).all()
 
     cheapest_overall_offer = sorted(all_offers, key=lambda k: k.offer_price_amount)[0]
@@ -252,23 +309,6 @@ def refresh_item_data(item, amazon_api=None):
         db.session.add(item)
         db.session.commit()
         logger.info('   got attributes')
-    
-    # only get images if it's the wishlist item
-    if item.is_on_wishlist and len(item.images.all()) == 0:
-        # get the main image for the item
-        item_image = get_images(ASIN=ASIN, amazon_api=amazon_api)
-        image_sizes = get_image_sizes(item_image)
-        new_item_image = Image(smallURL=str(image_sizes['smallURL']),
-                               smallHeight=int(image_sizes['smallHeight'] or 0),
-                               smallWidth=int(image_sizes['smallWidth'] or 0),
-                               mediumURL=str(image_sizes['mediumURL']),
-                               mediumHeight=int(image_sizes['mediumHeight'] or 0),
-                               mediumWidth=int(image_sizes['mediumWidth'] or 0),
-                               largeURL=str(image_sizes['largeURL']),
-                               largeHeight=int(image_sizes['largeHeight'] or 0),
-                               largeWidth=int(image_sizes['largeWidth'] or 0),
-                               item_id=item.id)
-        db.session.add(new_item_image)
 
     return True
 
@@ -295,9 +335,15 @@ def find_cheapest_overall_and_vs_list():
 
     all_best_offers = Offer.query.filter(Offer.best_offer == True).all()
 
-    cheapest_vs_list = sorted(all_best_offers, key=lambda k: k['savings_vs_list'], reverse=True)[0]
-    cheapest_overall = sorted(all_best_offers, key=lambda k: k['offer_price_amount'], reverse=True)[0]
+    cheapest_vs_list = sorted(all_best_offers, key=lambda k: k.savings_vs_list, reverse=True)[0]
+    cheapest_overall = sorted(all_best_offers, key=lambda k: k.offer_price_amount, reverse=True)[0]
 
+    cheapest_vs_list.cheapest_vs_list = True
+    cheapest_overall.cheapest_overall = True
+    db.session.add(cheapest_overall)
+    db.session.add(cheapest_vs_list)
+    db.session.commit()
+    
 
 def main():
 
@@ -370,6 +416,8 @@ def main():
 
     # now let's see what the best deals are!
     find_best_offer_per_wishlist_item()
+
+    get_images_for_best_offer_items(amazon_api)
 
     find_cheapest_overall_and_vs_list()
 

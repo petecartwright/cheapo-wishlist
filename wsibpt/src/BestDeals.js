@@ -39,23 +39,23 @@ class BestDeals extends Component {
         <Header />
         <Grid>
           <Row>
-            <Col xs={12} md={6}>
+            <Col className="spacer" xs={0} md={1} />
+            <Col xs={12} md={4}>
               <DealCard
                 className="cheapest-vs-list"
                 deal={this.state.cheapest_vs_list}
                 loaded={this.state.cheapest_vs_list_loaded}
               />
             </Col>
-            <Col xs={12} md={6}>
+            <Col className="spacer" xs={0} md={2} />
+            <Col xs={12} md={4}>
               <DealCard
                 className="cheapest-overall"
                 deal={this.state.cheapest_overall}
                 loaded={this.state.cheapest_overall_loaded}
               />
             </Col>
-            {/* <Col xs={12} md={4}>
-              <DealCard />
-            </Col> */}
+            <Col className="spacer" xs={0} md={1} />
           </Row>
         </Grid>
       </div>
